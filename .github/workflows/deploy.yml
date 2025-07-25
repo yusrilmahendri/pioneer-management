@@ -1,0 +1,48 @@
+name: CI/CD to Hostinger via FTP
+
+# 👇👇 Trigger otomatis ketika push ke branch 'develop'
+on:
+  push:
+    branches:
+      - develop
+
+jobs:
+  deploy:
+    name: Deploy to Hostinger
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: ✅ Checkout Repository
+        uses: actions/checkout@v3
+
+      # (Opsional) Setup PHP environment
+      - name: ⚙️ Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.2'
+
+      # (Opsional) Install composer dependencies
+      - name: 📦 Install Composer Dependencies
+        run: |
+          if [ -f composer.json ]; then
+            composer install --no-dev --prefer-dist
+          fi
+
+      # (Opsional) Jalankan test (jika ada)
+      - name: 🧪 Run Tests
+        run: |
+          if [ -f vendor/bin/phpunit ]; then
+            vendor/bin/phpunit
+          else
+            echo "No tests to run"
+          fi
+
+      # 🚀 Deploy ke FTP Hostinger
+      - name: 🚀 Deploy to Hostinger
+        uses: SamKirkland/FTP-Deploy-Action@v4
+        with:
+          server: ${{ secrets.FTP_SERVER }}
+          username: ${{ secrets.FTP_USERNAME }}
+          password: ${{ secrets.FTP_PASSWORD }}
+          server-dir: /public_html/
+          local-dir: ./
