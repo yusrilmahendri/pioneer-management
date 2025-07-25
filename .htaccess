@@ -1,0 +1,5 @@
+RewriteEngine on
+RewriteCond %{HTTP_HOST} ^cloud-api-management.pioneersolve.id$ [NC,OR]
+RewriteCond %{HTTP_HOST} ^www.cloud-api-management.pioneersolve.id$
+RewriteCond %{REQUEST_URI} !public/
+RewriteRule (.*) /public/$1 [L]
