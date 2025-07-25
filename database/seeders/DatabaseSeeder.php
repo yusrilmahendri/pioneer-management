@@ -17,7 +17,10 @@ class DatabaseSeeder extends Seeder
         $this->call(PegawaiTableSeeder::class);
         $this->call(SuperAdminTableSeeder::class);
         $this->call(CategoryProductSeeder::class);
-        $this->call(StatusProductSeeder::class);
+        $this->call(StatusSeeder::class);
+        $this->call(PembayaranSeeder::class);
         $this->call(ProductsSeeder::class);
+        $this->call(VoucherSeeder::class);
+
     }
 }

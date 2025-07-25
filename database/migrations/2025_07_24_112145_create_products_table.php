@@ -30,7 +30,7 @@ return new class extends Migration
             // Foreign key constraints
             $table->foreign('user_id')->references('uuid')->on('users')->onDelete('cascade');
             $table->foreign('category_id')->references('uuid')->on('category_products');
-            $table->foreign('status_id')->references('uuid')->on('status_products');
+            $table->foreign('status_id')->references('uuid')->on('statuses');
         });
     }
 

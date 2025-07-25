@@ -4,10 +4,10 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use Illuminate\Support\Str;
 
-class StatusProduct extends Model
+class Status extends Model
 {
+    /** @use HasFactory<\Database\Factories\StatusFactory> */
     use HasFactory;
 
     protected $primaryKey = 'uuid';
@@ -16,7 +16,7 @@ class StatusProduct extends Model
 
     protected $fillable = [
         'uuid',
-        'label', // or 'name', etc.
+        'name', // or 'name', etc.
     ];
 
     protected static function booted()

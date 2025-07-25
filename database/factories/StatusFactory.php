@@ -3,15 +3,14 @@
 namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
-use App\Models\StatusProduct;
+use App\Models\Status;
 use Illuminate\Support\Str;
 
 /**
- * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\StatusProduct>
+ * @extends \Illuminate\Database\Eloquent\Factories\Factory<\App\Models\Status>
  */
-class StatusProductFactory extends Factory
-{   
-    protected $model = StatusProduct::class;
+class StatusFactory extends Factory
+{
     /**
      * Define the model's default state.
      *
@@ -21,7 +20,7 @@ class StatusProductFactory extends Factory
     {
          return [
             'uuid' => Str::uuid(),
-            'status_product' => $this->faker->randomElement(['Aktif', 'Tidak Aktif', 'Preorder', 'Kadaluarsa']),
+            'name' => $this->faker->randomElement(['Aktif', 'Tidak Aktif', 'Preorder', 'Kadaluarsa']),
         ];
     }
 }
