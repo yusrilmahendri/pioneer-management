@@ -1,4 +1,4 @@
-name: FTP Deploy with sebastianpopp
+name: Remote Git Pull on Server
 
 on:
   push:
@@ -8,15 +8,18 @@ on:
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v3
 
-      - name: Upload via FTP
-        uses: sebastianpopp/ftp-action@releases/v2
+    steps:
+      - name: ✅ Checkout code
+        uses: actions/checkout@v3
+
+      - name: 🚀 SSH Git Pull on Hostinger
+        uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.FTP_SERVER }}
-          user: ${{ secrets.FTP_USERNAME }}
-          password: ${{ secrets.FTP_PASSWORD }}
-          localDir: "./"
-          remoteDir: "../domains/pioneersolve.id/public_html/cloud-api-management"
-          options: "--delete"
+          host: ${{ secrets.SSH_HOST }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          port: 22
+          script: |
+            cd ../domains/pioneersolve.id/public_html/cloud-api-management
+            git pull origin develop
