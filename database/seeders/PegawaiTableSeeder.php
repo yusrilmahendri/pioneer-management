@@ -14,8 +14,8 @@ class PegawaiTableSeeder extends Seeder
     public function run()
     {
         $user = User::create([
-            'name' => 'Nova Pratiwi Dewi',
-            'email' => 'nopa@gmail.com', 
+            'name' => 'Yusril Mahendri',
+            'email' => 'yusrilmahendri.yusril@gmail.com', 
             'password' => bcrypt('Bismillah@1'),
             'email_verified_at' => now(),
             'phone' => '081234567890',
