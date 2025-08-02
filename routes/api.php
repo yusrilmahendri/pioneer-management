@@ -12,7 +12,7 @@ Route::post('/reset-password', [AuthController::class, 'resetPassword']);
 
 
 
-// role pegawai
+// role pegawai //
 Route::group(['middleware' => ['role:pegawai']], function () {
     Route::get('/pegawai', [AuthController::class, 'pegawai']);
 
