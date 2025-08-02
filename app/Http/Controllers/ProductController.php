@@ -3,36 +3,36 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
-use App\Models\Product;
+use App\Models\Products;
 use Illuminate\Support\Str;
 use App\Http\Resources\Product\ProductCollection;
+use App\Http\Resources\Product\ProductResource;
 
 class ProductController extends Controller
 {
-    // public function __construct(){
-    //     $this->middleware('auth:sanctum');
-    // }  
+    public function __construct(){
+        $this->middleware('auth:sanctum');
+    }  
 
     public function index(){
-        $data = Product::get();
+        $data = Products::paginate(10);  // 10 is the number of items per page
         return new ProductCollection($data);
     }
     
     public function store(Request $request)
     {
         $validated = $request->validate([
-            'user_id' => 'required|exists:users,uuid',
             'category_id' => 'required|exists:category_products,uuid',
-            'status_id' => 'required|exists:status_products,uuid',
+            'status_id' => 'required|exists:statuses,uuid',
             'name_product' => 'required|string|max:255',
             'deskripsi' => 'nullable|string',
             'price' => 'required|numeric|min:0',
             'stock' => 'required|integer|min:0',
         ]);
 
-        $product = Product::create([
+        $product = Products::create([
             'uuid' => Str::uuid(),
-            'user_id' => $validated['user_id'],
+            'user_id' => auth()->user()->uuid,
             'category_id' => $validated['category_id'],
             'status_id' => $validated['status_id'],
             'name_product' => $validated['name_product'],

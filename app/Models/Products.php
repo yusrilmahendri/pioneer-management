@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\CategoryProduct;
+use App\Models\User;
+use App\Models\Status;
 
 class Products extends Model
 {
@@ -42,7 +45,7 @@ class Products extends Model
 
     public function category()
     {
-        return $this->belongsTo(Category::class, 'category_id', 'uuid');
+        return $this->belongsTo(CategoryProduct::class, 'category_id', 'uuid');
     }
 
     public function status()
