@@ -4,8 +4,8 @@ namespace Database\Factories;
 
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
-use App\Models\Status;
 use App\Models\User;
+use App\Models\StatusProduct;
 
 
 /**
@@ -25,8 +25,7 @@ class VoucherFactory extends Factory
 
             // Pastikan ini tidak membuat user baru saat seeding (gunakan inRandomOrder di Seeder)
             'user_id' => User::inRandomOrder()->first()?->uuid ?? User::factory(),
-            'status_id' => Status::inRandomOrder()->first()?->uuid ?? Status::factory(),
-
+            'status_product_id' => StatusProduct::inRandomOrder()->first(),
             'kode_promo' => strtoupper($this->faker->bothify('PROMO###')),
             'tipe_promo' => $this->faker->randomElement(['percentage', 'nominal']),
             'start_date' => now(),

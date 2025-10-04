@@ -38,9 +38,4 @@ class Voucher extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'uuid');
     }
-
-    public function status()
-    {
-        return $this->belongsTo(StatusProduct::class, 'status_id', 'uuid');
-    }
 }

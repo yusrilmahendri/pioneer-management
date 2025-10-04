@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('pembayarans', function (Blueprint $table) {
-            $table->uuid('uuid')->primary();
-            $table->string('name');
+        Schema::create('status_busines', function (Blueprint $table) {
+            $table->id();
+            $table->string('name_status_busines');
             $table->timestamps();
         });
     }
@@ -23,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('pembayarans');
+        Schema::dropIfExists('status_busines');
     }
 };

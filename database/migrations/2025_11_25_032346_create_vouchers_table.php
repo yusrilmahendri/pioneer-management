@@ -12,10 +12,9 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('vouchers', function (Blueprint $table) {
-         $table->uuid('uuid')->primary();
-            $table->uuid('user_id');          // FK ke users.uuid
-            $table->uuid('status_id');        // FK ke status_products.uuid
-
+            $table->uuid('uuid')->primary();
+            $table->uuid('user_id');          // FK ke users.uuid     // FK ke status_products.uuid
+            $table->unsignedBigInteger('status_product_id'); // FK ke status_products.id
             $table->string('kode_promo')->unique();
             $table->string('tipe_promo');     // e.g. percentage, nominal
             $table->date('start_date');
@@ -24,7 +23,7 @@ return new class extends Migration
             $table->timestamps();
 
             $table->foreign('user_id')->references('uuid')->on('users')->onDelete('cascade');
-            $table->foreign('status_id')->references('uuid')->on('statuses');
+            $table->foreign('status_product_id')->references('id')->on('status_products');
         });
     }
 
