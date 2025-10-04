@@ -4,15 +4,18 @@ namespace Database\Seeders;
 
 use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\Products;
+use App\Models\StatusBusines;
 
-class ProductsSeeder extends Seeder
+class StatusBusinesSeeder extends Seeder
 {
     /**
      * Run the database seeds.
      */
     public function run(): void
     {
-        Products::factory()->count(1)->create();
+        StatusBusines::insert([
+            ['name_status_busines' => 'Active'],
+            ['name_status_busines' => 'Inactive'],
+        ]);   
     }
 }

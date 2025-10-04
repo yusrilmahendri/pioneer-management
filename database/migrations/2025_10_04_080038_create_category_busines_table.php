@@ -11,9 +11,9 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('statuses', function (Blueprint $table) {
-            $table->uuid('uuid')->primary();
-            $table->string('name');
+        Schema::create('category_busines', function (Blueprint $table) {
+            $table->id();
+            $table->string('name_busines');
             $table->timestamps();
         });
     }
@@ -23,6 +23,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('statuses');
+        Schema::dropIfExists('category_busines');
     }
 };

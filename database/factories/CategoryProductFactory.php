@@ -22,7 +22,7 @@ class CategoryProductFactory extends Factory
     {
         return [
             'uuid' => Str::uuid(),
-            'category_product' => $this->faker->word(),
+            'category_product' => 'Food & Beverage',
         ];
     }
 }

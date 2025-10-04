@@ -5,7 +5,7 @@ namespace Database\Factories;
 use App\Models\Products;
 use App\Models\User;
 use App\Models\CategoryProduct;
-use App\Models\Status;
+use App\Models\CategoryBusines;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -25,8 +25,8 @@ class ProductsFactory extends Factory
         return [
             'uuid' => Str::uuid(),
             'user_id' => User::inRandomOrder()->first()?->uuid,
-            'category_id' => CategoryProduct::inRandomOrder()->first()?->uuid,
-            'status_id' => Status::inRandomOrder()->first()?->uuid,
+            'category_id' => CategoryProduct::inRandomOrder()->first(),
+            'category_business_id' => CategoryBusines::inRandomOrder()->first(),
             'name_product' => $this->faker->words(2, true),
             'deskripsi' => $this->faker->sentence(),
             'price' => $this->faker->randomFloat(2, 10000, 100000),
