@@ -5,7 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
-use App\Models\Product;
+use App\Models\Products;
 
 class CategoryProduct extends Model
 {
@@ -31,6 +31,6 @@ class CategoryProduct extends Model
 
     public function products()
     {
-        return $this->hasMany(Product::class, 'category_id', 'uuid');
+        return $this->hasMany(Products::class, 'category_id', 'uuid');
     }
 }

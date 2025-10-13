@@ -4,6 +4,9 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use App\Models\Products;
+use Illuminate\Support\Str;
+use App\Models\Voucher;
 
 class Pembayaran extends Model
 {
@@ -23,5 +26,12 @@ class Pembayaran extends Model
         });
     }
 
+    public function products() {
+        return $this->belongsTo(Products::class, 'product_id', 'uuid');
+    }
+
+    public function voucher() {
+        return $this->belongsTo(Voucher::class, 'voucher_id', 'uuid');  
+    }
 
 }

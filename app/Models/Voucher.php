@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Str;
+use App\Models\Pembayaran;
 
 class Voucher extends Model
 {
@@ -37,5 +38,10 @@ class Voucher extends Model
     public function user()
     {
         return $this->belongsTo(User::class, 'user_id', 'uuid');
+    }
+
+    public function pembayaran()
+    {
+        return $this->hasMany(Pembayaran::class, 'voucher_id', 'uuid');
     }
 }
