@@ -4,9 +4,11 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
-use App\Models\CategoryProduct;
 use App\Models\User;
-use App\Models\Status;
+use App\Models\CategoryProduct;
+use App\Models\CategoryBusines;
+use App\Models\StatusProduct;
+use App\Models\Pembayaran;
 
 class Products extends Model
 {
@@ -42,14 +44,22 @@ class Products extends Model
     {
         return $this->belongsTo(User::class, 'user_id', 'uuid');
     }
-
-    public function category()
-    {
+    
+    public function categoryProduct(){
         return $this->belongsTo(CategoryProduct::class, 'category_id', 'uuid');
     }
 
-    public function status()
-    {
-        return $this->belongsTo(Status::class, 'status_id', 'uuid');
+    public function categoryBusines(){
+        return $this->belongsTo(CategoryBusines::class, 'category_id', 'uuid');
     }
+
+    public function statusProduct(){
+        return $this->belongsTo(StatusProduct::class, 'status_id', 'uuid');       
+    }
+
+    public function transactions()
+    {
+        return $this->hasMany(Pembayaran::class, 'product_id', 'uuid');
+    }
+    
 }
