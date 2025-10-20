@@ -13,17 +13,18 @@ return new class extends Migration
     {
         Schema::create('add_busines', function (Blueprint $table) {
             $table->id();
-            $table->string('name_busines');
             $table->unsignedBigInteger('category_busines_id');
             $table->unsignedBigInteger('status_busines_id');
-            $table->unsignedBigInteger("province_id");
-            $table->unsignedBigInteger('kabupaten_id');
+            $table->string('name_busines');
+            $table->string('provinsi_id');   // ID dari API (misal: "19")
+            $table->string('provinsi_nama'); // Nama provinsi (misal: "Sumatera Selatan")
+            $table->string('kabupaten_id');  // ID dari API (misal: "1902")
+            $table->string('kabupaten_nama'); // Nama kabupaten (misal: "Kota Palembang")
+            $table->date('start_date'); 
             $table->timestamps();
 
             $table->foreign('category_busines_id')->references('id')->on('category_busines');
             $table->foreign('status_busines_id')->references('id')->on('status_busines');
-            $table->foreign('province_id')->references('id')->on('provinsis');
-            $table->foreign('kabupaten_id')->references('id')->on('kabupatens');
         });
     }
 

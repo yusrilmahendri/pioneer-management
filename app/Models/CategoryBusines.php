@@ -14,11 +14,11 @@ class CategoryBusines extends Model
     protected $guarded = [];
 
     public function products(){
-        return $this->hasMany(Products::class, 'category_id', 'uuid');
+        return $this->hasMany(Products::class, 'category_id', 'id');
     }
 
     public function addBusines()
     {
-        return $this->hasMany(AddBusines::class, 'category_busines_id');
+        return $this->hasMany(AddBusines::class, 'category_busines_id', 'id');
     }
 }

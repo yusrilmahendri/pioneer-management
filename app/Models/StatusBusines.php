@@ -13,6 +13,6 @@ class StatusBusines extends Model
         protected $guarded = [];
 
         Public function addBusiness(){
-            return $this->hasMany(AddBusines::class, 'status_id', 'uuid');
+            return $this->hasMany(AddBusines::class, 'status_busines_id', 'id');
         }
 }
