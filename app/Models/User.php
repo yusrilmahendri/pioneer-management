@@ -9,13 +9,14 @@ use Illuminate\Notifications\Notifiable;
 use Spatie\Permission\Traits\HasRoles;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
+use Illuminate\Support\Facades\DB;
 
 class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
     
-    protected $primaryKey = 'uuid';
-    protected $keyType = 'string';
+    protected $primaryKey = 'id';
+    protected $keyType = 'int';
     public $incrementing = false;
 
     /**
@@ -26,8 +27,19 @@ class User extends Authenticatable
     protected $fillable = [
         'name',
         'email',
+        'username',
         'password',
-        'phone'
+        'phone',
+        'birth_of_date',
+        'birth_of_place',
+        'gender',
+        'start_date',
+        'end_date',
+        'placement',
+        'job_role',
+        'account_role',
+        'salary',
+        'uuid',
     ];
 
     /**
@@ -56,8 +68,14 @@ class User extends Authenticatable
     protected static function booted()
     {
         static::creating(function ($model) {
-            if (! $model->getKey()) {
-                $model->{$model->getKeyName()} = (string) Str::uuid();
+            // Generate ID using MySQL's UUID_SHORT() function
+            if (empty($model->id)) {
+                $model->id = \DB::selectOne('SELECT UUID_SHORT() as id')->id;
+            }
+            
+            // Generate UUID for the uuid field if needed
+            if (empty($model->uuid)) {
+                $model->uuid = (string) Str::uuid();
             }
         });
     }
