@@ -19,6 +19,14 @@ class SuperAdminTableSeeder extends Seeder
             'password' => bcrypt('Bismillah@1'),
             'email_verified_at' => now(),
             'phone' => '081234567890',
+            'birth_of_date' => '1990-01-01',
+            'birth_of_place' => 'Jakarta',
+            'gender' => 'male',
+            'start_date' => '2020-01-01',
+            'placement' => 'Head Office',
+            'job_role' => 'Administrator',
+            'account_role' => 'super-admin',
+            'salary' => 10000000,
         ]);
 
         $user->assignRole('super-admin');

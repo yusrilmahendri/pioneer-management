@@ -12,7 +12,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('status_products', function (Blueprint $table) {
-            $table->id();
+            $table->uuid('uuid')->primary();
             $table->string('name_status');
             $table->timestamps();
         });
