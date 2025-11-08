@@ -739,95 +739,160 @@ Authorization: Bearer {token}
 GET /api/businesses-public
 ```
 
+**Access:** Public (No authentication required)
+
 **Query Parameters:**
 - `search` (optional): Search by business name
 - `category_id` (optional): Filter by category ID
 - `status_id` (optional): Filter by status ID
-- `per_page` (optional): Items per page (default: 15)
-- `page` (optional): Page number (default: 1)
+- `order_by` (optional): Sort by field (default: created_at)
+- `order_direction` (optional): asc or desc (default: desc)
 
 **Success Response (200):**
 ```json
 {
-    "success": true,
+    "status": "success",
     "message": "Businesses retrieved successfully",
-    "data": {
-        "current_page": 1,
-        "data": [
-            {
+    "data": [
+        {
+            "id": 1,
+            "business": "Warung Kopi Santai",
+            "description": "Cozy coffee shop with local atmosphere",
+            "address": "Jl. Sudirman No. 123, Jakarta",
+            "phone": "081234567890",
+            "email": "info@warunkkopi.com",
+            "website": "https://warunkkopi.com",
+            "category": {
                 "id": 1,
-                "name_business": "Warung Kopi Santai",
-                "description": "Cozy coffee shop with local atmosphere",
-                "category": {
-                    "id": "uuid-string",
-                    "name": "Food & Beverage"
-                },
-                "status": {
-                    "id": "uuid-string", 
-                    "name": "Active"
-                },
-                "start_date": "2023-01-15",
-                "location": "Jakarta",
-                "created_at": "2023-01-15T00:00:00Z"
-            }
-        ],
-        "per_page": 15,
-        "total": 50,
-        "last_page": 4
-    }
+                "business_category": "Food & Beverage"
+            },
+            "status": {
+                "id": 1,
+                "business_status": "Active"
+            },
+            "start_date": "2023-01-15",
+            "created_at": "2023-01-15T00:00:00Z",
+            "updated_at": "2025-11-09T10:00:00Z"
+        }
+    ]
 }
 ```
 
-### Get All Businesses (Protected)
+### Get All Businesses (Admin Only)
 
 ```http
 GET /api/businesses
-Authorization: Bearer {token}
+Authorization: Bearer {admin_token}
 ```
 
-**Query Parameters:** Same as public endpoint
+**Required Role:** Admin
 
-**Success Response:** Same structure as public endpoint but with additional sensitive data if authorized
+**Query Parameters:**
+- `search` (optional): Search by business name
+- `category_id` (optional): Filter by category ID
+- `status_id` (optional): Filter by status ID
+- `user_id` (optional): Filter by user ID (businesses assigned to user)
+- `order_by` (optional): Sort by field (default: created_at)
+- `order_direction` (optional): asc or desc (default: desc)
+
+**Success Response (200):**
+```json
+{
+    "status": "success",
+    "message": "Businesses retrieved successfully",
+    "data": [
+        {
+            "id": 1,
+            "business": "Warung Kopi Santai",
+            "description": "Cozy coffee shop with local atmosphere",
+            "address": "Jl. Sudirman No. 123, Jakarta",
+            "phone": "081234567890",
+            "email": "info@warunkkopi.com",
+            "website": "https://warunkkopi.com",
+            "category": {
+                "id": 1,
+                "business_category": "Food & Beverage"
+            },
+            "status": {
+                "id": 1,
+                "business_status": "Active"
+            },
+            "users": [
+                {
+                    "id": "uuid-string",
+                    "name": "John Doe",
+                    "account_role": "owner"
+                }
+            ],
+            "products_count": 25,
+            "employees_count": 5,
+            "start_date": "2023-01-15",
+            "created_at": "2023-01-15T00:00:00Z",
+            "updated_at": "2025-11-09T10:00:00Z"
+        }
+    ]
+}
+```
 
 ### Get My Businesses
 
 ```http
 GET /api/businesses/my-businesses
-Authorization: Bearer {token}
+Authorization: Bearer {admin_token}
 ```
 
-**Query Parameters:** Same as Get All Businesses
+**Required Role:** Admin
 
-**Success Response:** Same structure but filtered by user's businesses
+**Description:** Returns all businesses that the authenticated user is assigned to through the business_account pivot table.
+
+**Success Response (200):**
+```json
+{
+    "status": "success",
+    "message": "User businesses retrieved successfully",
+    "data": [
+        {
+            "id": 1,
+            "business": "Warung Kopi Santai",
+            "description": "Cozy coffee shop with local atmosphere",
+            "category": {
+                "id": 1,
+                "business_category": "Food & Beverage"
+            },
+            "status": {
+                "id": 1,
+                "business_status": "Active"
+            },
+            "start_date": "2023-01-15",
+            "created_at": "2023-01-15T00:00:00Z"
+        }
+    ]
+}
+```
 
 ### Get Business Statistics
 
 ```http
 GET /api/businesses/statistics
-Authorization: Bearer {token}
+Authorization: Bearer {admin_token}
 ```
+
+**Required Role:** Admin
 
 **Success Response (200):**
 ```json
 {
-    "success": true,
+    "status": "success",
     "message": "Business statistics retrieved successfully",
     "data": {
-        "total_businesses": 50,
-        "active_businesses": 45,
-        "inactive_businesses": 5,
-        "categories_breakdown": [
-            {
-                "category": "Food & Beverage",
-                "count": 25
-            },
-            {
-                "category": "Retail",
-                "count": 15
-            }
-        ],
-        "monthly_created": 8,
-        "total_revenue": 500000000
+        "total": 50,
+        "active": 45,
+        "inactive": 5,
+        "by_category": {
+            "Food & Beverage": 25,
+            "Retail": 15,
+            "Services": 10
+        }
     }
 }
 ```
@@ -836,47 +901,82 @@ Authorization: Bearer {token}
 
 ```http
 GET /api/businesses/category/{categoryId}
-Authorization: Bearer {token}
+Authorization: Bearer {admin_token}
 ```
 
+**Required Role:** Admin
+
 **Path Parameters:**
-- `categoryId` (required): Category ID
+- `categoryId` (required): Category ID (integer)
 
-**Query Parameters:** Same as Get All Businesses
-
-**Success Response:** Same structure as Get All Businesses but filtered by category
+**Success Response (200):**
+```json
+{
+    "status": "success",
+    "message": "Businesses retrieved successfully",
+    "data": [
+        {
+            "id": 1,
+            "business": "Warung Kopi Santai",
+            "category": {
+                "id": 1,
+                "business_category": "Food & Beverage"
+            },
+            "status": {
+                "id": 1,
+                "business_status": "Active"
+            }
+        }
+    ]
+}
+```
 
 ### Get Single Business
 
 ```http
 GET /api/businesses/{id}
-Authorization: Bearer {token}
+Authorization: Bearer {admin_token}
 ```
 
+**Required Role:** Admin
+
 **Path Parameters:**
-- `id` (required): Business ID
+- `id` (required): Business ID (integer)
 
 **Success Response (200):**
 ```json
 {
-    "success": true,
+    "status": "success",
     "message": "Business retrieved successfully",
     "data": {
-        "business": {
+        "id": 1,
+        "business": "Warung Kopi Santai",
+        "description": "Cozy coffee shop with local atmosphere",
+        "address": "Jl. Sudirman No. 123, Jakarta",
+        "phone": "081234567890",
+        "email": "info@warunkkopi.com",
+        "website": "https://warunkkopi.com",
+        "category": {
             "id": 1,
-            "name_business": "Warung Kopi Santai",
-            "description": "Cozy coffee shop with local atmosphere",
-            "category": {...},
-            "status": {...},
-            "start_date": "2023-01-15",
-            "location": "Jakarta",
-            "employees_count": 5,
-            "products_count": 20,
-            "monthly_revenue": 25000000,
-            "created_at": "2023-01-15T00:00:00Z",
-            "updated_at": "2025-11-09T10:00:00Z"
-        }
+            "business_category": "Food & Beverage"
+        },
+        "status": {
+            "id": 1,
+            "business_status": "Active"
+        },
+        "start_date": "2023-01-15",
+        "created_at": "2023-01-15T00:00:00Z",
+        "updated_at": "2025-11-09T10:00:00Z"
     }
+}
+```
+
+**Error Response (404):**
+```json
+{
+    "status": "error",
+    "message": "Business not found",
+    "data": null
 }
 ```
 
@@ -884,44 +984,65 @@ Authorization: Bearer {token}
 
 ```http
 POST /api/businesses
-Authorization: Bearer {admin_or_owner_token}
+Authorization: Bearer {admin_token}
 Content-Type: application/json
 ```
 
-**Required Roles:** Admin, Owner
+**Required Role:** Admin only
 
 **Request Body:**
 ```json
 {
-    "name_business": "New Coffee Shop",
+    "business": "New Coffee Shop",
+    "id_business_category": 1,
+    "id_business_status": 1,
     "description": "Modern coffee shop with artisan coffee",
-    "category_id": "uuid-string",
-    "status_id": "uuid-string",
-    "start_date": "2025-11-09",
-    "location": "Bandung",
-    "contact_phone": "081234567890",
-    "contact_email": "info@newcoffeeshop.com"
+    "address": "Jl. Asia Afrika No. 45, Bandung",
+    "phone": "081234567890",
+    "email": "info@newcoffeeshop.com",
+    "website": "https://newcoffeeshop.com"
 }
 ```
+
+**Validation Rules:**
+- `business`: required, string, max 255 characters
+- `id_business_category`: required, must exist in business_categories table
+- `id_business_status`: required, must exist in business_statuses table
+- `description`: optional, string
+- `address`: optional, string
+- `phone`: optional, string, max 20 characters
+- `email`: optional, valid email format
+- `website`: optional, valid URL format
 
 **Success Response (201):**
 ```json
 {
-    "success": true,
+    "status": "success",
     "message": "Business created successfully",
     "data": {
-        "business": {
-            "id": 2,
-            "name_business": "New Coffee Shop",
-            "description": "Modern coffee shop with artisan coffee",
-            "category_id": "uuid-string",
-            "status_id": "uuid-string",
-            "start_date": "2025-11-09",
-            "location": "Bandung",
-            "contact_phone": "081234567890",
-            "contact_email": "info@newcoffeeshop.com",
-            "created_at": "2025-11-09T11:00:00Z"
-        }
+        "id": 2,
+        "business": "New Coffee Shop",
+        "description": "Modern coffee shop with artisan coffee",
+        "address": "Jl. Asia Afrika No. 45, Bandung",
+        "phone": "081234567890",
+        "email": "info@newcoffeeshop.com",
+        "website": "https://newcoffeeshop.com",
+        "id_business_category": 1,
+        "id_business_status": 1,
+        "created_at": "2025-11-09T11:00:00Z",
+        "updated_at": "2025-11-09T11:00:00Z"
+    }
+}
+```
+
+**Error Response (422):**
+```json
+{
+    "status": "error",
+    "message": "Validation failed",
+    "errors": {
+        "business": ["The business field is required."],
+        "id_business_category": ["The selected id business category is invalid."]
     }
 }
 ```
@@ -930,37 +1051,51 @@ Content-Type: application/json
 
 ```http
 PUT /api/businesses/{id}
-Authorization: Bearer {admin_or_owner_token}
+Authorization: Bearer {admin_token}
 Content-Type: application/json
 ```
 
-**Required Roles:** Admin, Owner
+**Required Role:** Admin only
 
 **Path Parameters:**
-- `id` (required): Business ID
+- `id` (required): Business ID (integer)
 
 **Request Body:** (all fields optional)
 ```json
 {
-    "name_business": "Updated Coffee Shop Name",
+    "business": "Updated Coffee Shop Name",
     "description": "Updated description",
-    "location": "Jakarta Selatan",
-    "contact_phone": "081987654321"
+    "address": "Jakarta Selatan",
+    "phone": "081987654321",
+    "email": "newemail@coffeeshop.com",
+    "website": "https://newwebsite.com",
+    "id_business_category": 2,
+    "id_business_status": 1
 }
 ```
 
 **Success Response (200):**
 ```json
 {
-    "success": true,
+    "status": "success",
     "message": "Business updated successfully",
     "data": {
-        "business": {
-            "id": 1,
-            "name_business": "Updated Coffee Shop Name",
-            "updated_at": "2025-11-09T11:30:00Z"
-        }
+        "id": 1,
+        "business": "Updated Coffee Shop Name",
+        "description": "Updated description",
+        "address": "Jakarta Selatan",
+        "phone": "081987654321",
+        "updated_at": "2025-11-09T11:30:00Z"
     }
+}
+```
+
+**Error Response (404):**
+```json
+{
+    "status": "error",
+    "message": "Business not found",
+    "data": null
 }
 ```
 
@@ -968,19 +1103,29 @@ Content-Type: application/json
 
 ```http
 DELETE /api/businesses/{id}
-Authorization: Bearer {admin_or_owner_token}
+Authorization: Bearer {admin_token}
 ```
 
-**Required Roles:** Admin, Owner
+**Required Role:** Admin only
 
 **Path Parameters:**
-- `id` (required): Business ID
+- `id` (required): Business ID (integer)
 
 **Success Response (200):**
 ```json
 {
-    "success": true,
-    "message": "Business deleted successfully"
+    "status": "success",
+    "message": "Business deleted successfully",
+    "data": null
+}
+```
+
+**Error Response (404):**
+```json
+{
+    "status": "error",
+    "message": "Business not found",
+    "data": null
 }
 ```
 
@@ -1483,12 +1628,15 @@ The API uses standard HTTP status codes to indicate success or failure:
 
 ## Role-Based Access Summary
 
-| Endpoint | Admin | Owner | Employee |
-|----------|-------|-------|----------|
-| `/api/dashboard` | ✅ | ✅ | ✅ |
-| `/api/dashboard/admin/*` | ✅ | ❌ | ❌ |
-| `/api/dashboard/owner/*` | ❌ | ✅ | ❌ |
-| `/api/dashboard/employee/*` | ❌ | ❌ | ✅ |
+| Endpoint | Admin | Owner | Employee | Public |
+|----------|-------|-------|----------|--------|
+| `/api/dashboard` | ✅ | ✅ | ✅ | ❌ |
+| `/api/dashboard/admin/*` | ✅ | ❌ | ❌ | ❌ |
+| `/api/dashboard/owner/*` | ❌ | ✅ | ❌ | ❌ |
+| `/api/dashboard/employee/*` | ❌ | ❌ | ✅ | ❌ |
+| `/api/businesses-public` | ✅ | ✅ | ✅ | ✅ |
+| `/api/businesses` | ✅ | ❌ | ❌ | ❌ |
+| `/api/businesses/*` (all routes) | ✅ | ❌ | ❌ | ❌ |
 
 ---
 
@@ -1583,10 +1731,14 @@ GET /api/dashboard/admin/businesses/{businessId}/employees
 | Method | Endpoint | Access | Description |
 |--------|----------|---------|-------------|
 | GET | `/api/businesses-public` | Public | Get all businesses (public) |
-| GET | `/api/businesses` | Authenticated | Get all businesses |
-| POST | `/api/businesses` | Admin, Owner | Create business |
-| PUT | `/api/businesses/{id}` | Admin, Owner | Update business |
-| DELETE | `/api/businesses/{id}` | Admin, Owner | Delete business |
+| GET | `/api/businesses` | Admin | Get all businesses (admin only) |
+| GET | `/api/businesses/my-businesses` | Admin | Get user's assigned businesses |
+| GET | `/api/businesses/statistics` | Admin | Get business statistics |
+| GET | `/api/businesses/category/{categoryId}` | Admin | Get businesses by category |
+| GET | `/api/businesses/{id}` | Admin | Get single business |
+| POST | `/api/businesses` | Admin | Create business |
+| PUT | `/api/businesses/{id}` | Admin | Update business |
+| DELETE | `/api/businesses/{id}` | Admin | Delete business |
 
 ## Role-Based Access Summary
 
@@ -1595,8 +1747,14 @@ GET /api/dashboard/admin/businesses/{businessId}/employees
 | **User Creation** | Owner only | Employee only | ❌ | ❌ |
 | **Dashboard** | ✅ | ✅ | ✅ | ❌ |
 | **User Management** | ✅ | ✅ | ❌ | ❌ |
-| **Business Management** | ✅ | ✅ | Read only | Read only |
+| **Business Management** | ✅ (Full CRUD) | ❌ | ❌ | Read only (public endpoint) |
 | **Product Management** | ✅ | ✅ | ✅ | ❌ |
+
+**Important Notes:**
+- All `/api/businesses` routes (except `/api/businesses-public`) are **Admin only**
+- Business-user relationship is many-to-many through `business_account` pivot table
+- Owner and Employee can view public businesses via `/api/businesses-public`
+- Only Admin can create, update, delete, and manage business assignments
 
 ## Installation & Setup
 
@@ -1627,13 +1785,20 @@ GET /api/dashboard/admin/businesses/{businessId}/employees
 
 ### Middleware Registration
 
-Ensure `CheckAccountRole` middleware is registered as `role` in `app/Http/Kernel.php`:
+Ensure `CheckAccountRole` middleware is registered as `account_role` in `bootstrap/app.php`:
 
 ```php
-protected $middlewareAliases = [
-    'role' => \App\Http\Middleware\CheckAccountRole::class,
-];
+use App\Http\Middleware\CheckAccountRole;
+
+return Application::configure(basePath: dirname(__DIR__))
+    ->withMiddleware(function (Middleware $middleware) {
+        $middleware->alias([
+            'account_role' => CheckAccountRole::class,
+        ]);
+    })
 ```
+
+**Note:** The middleware checks the `account_role` column directly on the User model, not through Spatie Permission package.
 
 ### Default Test Credentials
 
