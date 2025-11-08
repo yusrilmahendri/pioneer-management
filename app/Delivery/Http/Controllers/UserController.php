@@ -8,6 +8,8 @@ use App\Delivery\Http\Requests\CreateUserRequest;
 use App\Delivery\Http\Requests\LoginRequest;
 use App\Delivery\Http\Requests\ForgotPasswordRequest;
 use App\Delivery\Http\Requests\ResetPasswordRequest;
+use App\Delivery\Http\Requests\CreateOwnerRequest;
+use App\Delivery\Http\Requests\CreateEmployeeRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -209,6 +211,56 @@ class UserController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'An error occurred while resetting password',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Admin creates owner account
+     */
+    public function createOwner(CreateOwnerRequest $request): JsonResponse
+    {
+        try {
+            $data = $request->validated();
+            $data['account_role'] = 'owner'; // Force owner role
+            
+            $result = $this->userUsecase->createUser($data);
+
+            if ($result['status'] === 'error') {
+                return response()->json($result, 422);
+            }
+
+            return response()->json($result, 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while creating owner',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Owner creates employee account
+     */
+    public function createEmployee(CreateEmployeeRequest $request): JsonResponse
+    {
+        try {
+            $data = $request->validated();
+            $data['account_role'] = 'employee'; // Force employee role
+            
+            $result = $this->userUsecase->createUser($data);
+
+            if ($result['status'] === 'error') {
+                return response()->json($result, 422);
+            }
+
+            return response()->json($result, 201);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while creating employee',
                 'error' => $e->getMessage()
             ], 500);
         }

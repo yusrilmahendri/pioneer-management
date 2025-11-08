@@ -110,4 +110,9 @@ interface UserUsecaseInterface
      * Validate user permissions for specific action
      */
     public function validateUserPermission(string $userUuid, string $action): bool;
+
+    /**
+     * Validate role hierarchy for user creation
+     */
+    public function validateRoleHierarchy(string $currentUserRole, string $targetRole): array;
 }

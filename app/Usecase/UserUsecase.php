@@ -132,6 +132,16 @@ class UserUsecase implements UserUsecaseInterface
             throw ValidationException::withMessages($validator->errors()->toArray());
         }
 
+        // Validate role hierarchy if user is authenticated (not for public registration)
+        if (auth()->check()) {
+            $currentUser = auth()->user();
+            $roleHierarchyCheck = $this->validateRoleHierarchy($currentUser->account_role, $payload['account_role']);
+            
+            if ($roleHierarchyCheck['status'] === 'error') {
+                return $roleHierarchyCheck;
+            }
+        }
+
         // Hash password
         $payload['password'] = Hash::make($payload['password']);
 
@@ -501,6 +511,53 @@ class UserUsecase implements UserUsecaseInterface
             default:
                 return false;
         }
+    }
+
+    /**
+     * Validate role hierarchy for user creation
+     * Admin can only create Owner
+     * Owner can only create Employee
+     * Employee cannot create anyone
+     */
+    public function validateRoleHierarchy(string $currentUserRole, string $targetRole): array
+    {
+        $allowedCreations = [
+            'admin' => ['owner'],
+            'owner' => ['employee'],
+            'employee' => [] // Employee cannot create anyone
+        ];
+
+        if (!isset($allowedCreations[$currentUserRole])) {
+            return [
+                'status' => 'error',
+                'message' => 'Invalid current user role',
+                'data' => null
+            ];
+        }
+
+        if (!in_array($targetRole, $allowedCreations[$currentUserRole])) {
+            $roleHierarchy = [
+                'admin' => 'Admin can only create Owner accounts',
+                'owner' => 'Owner can only create Employee accounts', 
+                'employee' => 'Employee cannot create any accounts'
+            ];
+
+            return [
+                'status' => 'error',
+                'message' => 'Role hierarchy violation: ' . $roleHierarchy[$currentUserRole],
+                'data' => [
+                    'current_role' => $currentUserRole,
+                    'attempted_role' => $targetRole,
+                    'allowed_roles' => $allowedCreations[$currentUserRole]
+                ]
+            ];
+        }
+
+        return [
+            'status' => 'success',
+            'message' => 'Role hierarchy validated successfully',
+            'data' => null
+        ];
     }
 
     /**

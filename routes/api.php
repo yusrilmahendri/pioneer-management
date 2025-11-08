@@ -70,11 +70,23 @@ Route::middleware('auth:sanctum')->group(function () {
         });
     });
     
+    // Role-based user creation routes
+    Route::middleware([\App\Http\Middleware\CheckAccountRole::class . ':admin'])->group(function () {
+        Route::prefix('admin')->group(function () {
+            Route::post('/create-owner', [UserController::class, 'createOwner']);
+        });
+    });
+
+    Route::middleware([\App\Http\Middleware\CheckAccountRole::class . ':owner'])->group(function () {
+        Route::prefix('owner')->group(function () {
+            Route::post('/create-employee', [UserController::class, 'createEmployee']);
+        });
+    });
+
     // User management routes (admin/owner only)
     Route::middleware([\App\Http\Middleware\CheckAccountRole::class . ':admin,owner'])->group(function () {
         Route::prefix('users')->group(function () {
             Route::get('/', [UserController::class, 'index']);
-            Route::post('/', [UserController::class, 'store']);
             Route::get('/{uuid}', [UserController::class, 'show']);
             Route::put('/{uuid}', [UserController::class, 'update']);
             Route::delete('/{uuid}', [UserController::class, 'destroy']);
