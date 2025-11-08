@@ -38,9 +38,11 @@ class BusinessRepository implements BusinessRepositoryInterface
             $query->where('id_business_status', $filters['status_id']);
         }
 
-        // Apply user filter
+        // Apply user filter - use relationship
         if (!empty($filters['user_id'])) {
-            $query->where('id_user', $filters['user_id']);
+            $query->whereHas('users', function($q) use ($filters) {
+                $q->where('users.id', $filters['user_id']);
+            });
         }
 
         // Apply ordering
@@ -107,7 +109,9 @@ class BusinessRepository implements BusinessRepositoryInterface
     public function getByUserId(int $userId)
     {
         return $this->model->with(['businessCategory', 'businessStatus'])
-            ->where('id_user', $userId)
+            ->whereHas('users', function($query) use ($userId) {
+                $query->where('users.id', $userId);
+            })
             ->orderBy('created_at', 'desc')
             ->get();
     }

@@ -4,9 +4,9 @@ namespace App\Usecase;
 
 use App\Repository\BusinessRepositoryInterface;
 use App\Usecase\Contracts\BusinessUsecaseInterface;
-use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Validation\ValidationException;
 
 class BusinessUsecase implements BusinessUsecaseInterface
 {
@@ -20,107 +20,127 @@ class BusinessUsecase implements BusinessUsecaseInterface
     /**
      * Get all businesses with filters
      */
-    public function getAllBusinesses(array $params): JsonResponse
+    public function getAllBusinesses(array $filters = []): array
     {
         try {
-            $filters = [
-                'search' => $params['search'] ?? null,
-                'category_id' => $params['category_id'] ?? null,
-                'status_id' => $params['status_id'] ?? null,
-                'user_id' => $params['user_id'] ?? null,
-                'order_by' => $params['order_by'] ?? 'created_at',
-                'order_direction' => $params['order_direction'] ?? 'desc'
+            $filterParams = [
+                'search' => $filters['search'] ?? null,
+                'category_id' => $filters['category_id'] ?? null,
+                'status_id' => $filters['status_id'] ?? null,
+                'user_id' => $filters['user_id'] ?? null,
+                'order_by' => $filters['order_by'] ?? 'created_at',
+                'order_direction' => $filters['order_direction'] ?? 'desc'
             ];
 
-            $paginate = filter_var($params['paginate'] ?? true, FILTER_VALIDATE_BOOLEAN);
-            $perPage = (int) ($params['per_page'] ?? 10);
+            $businesses = $this->businessRepository->getAll($filterParams, false, 0);
 
-            $businesses = $this->businessRepository->getAll($filters, $paginate, $perPage);
-
-            if ($paginate) {
-                return response()->json([
-                    'success' => true,
-                    'message' => 'Businesses retrieved successfully',
-                    'data' => $businesses->items(),
-                    'pagination' => [
-                        'current_page' => $businesses->currentPage(),
-                        'last_page' => $businesses->lastPage(),
-                        'per_page' => $businesses->perPage(),
-                        'total' => $businesses->total(),
-                        'from' => $businesses->firstItem(),
-                        'to' => $businesses->lastItem()
-                    ]
-                ]);
-            }
-
-            return response()->json([
-                'success' => true,
+            return [
+                'status' => 'success',
                 'message' => 'Businesses retrieved successfully',
                 'data' => $businesses
-            ]);
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve businesses: ' . $e->getMessage()
-            ], 500);
+            return [
+                'status' => 'error',
+                'message' => 'Failed to retrieve businesses: ' . $e->getMessage(),
+                'data' => null
+            ];
+        }
+    }
+
+    /**
+     * Get paginated businesses
+     */
+    public function getPaginatedBusinesses(array $filters = [], int $perPage = 15): array
+    {
+        try {
+            $filterParams = [
+                'search' => $filters['search'] ?? null,
+                'category_id' => $filters['category_id'] ?? null,
+                'status_id' => $filters['status_id'] ?? null,
+                'user_id' => $filters['user_id'] ?? null,
+                'order_by' => $filters['order_by'] ?? 'created_at',
+                'order_direction' => $filters['order_direction'] ?? 'desc'
+            ];
+
+            $businesses = $this->businessRepository->getAll($filterParams, true, $perPage);
+
+            return [
+                'status' => 'success',
+                'message' => 'Businesses retrieved successfully',
+                'data' => $businesses->items(),
+                'pagination' => [
+                    'current_page' => $businesses->currentPage(),
+                    'last_page' => $businesses->lastPage(),
+                    'per_page' => $businesses->perPage(),
+                    'total' => $businesses->total(),
+                    'from' => $businesses->firstItem(),
+                    'to' => $businesses->lastItem()
+                ]
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to retrieve businesses: ' . $e->getMessage(),
+                'data' => null
+            ];
         }
     }
 
     /**
      * Get business by ID
      */
-    public function getBusinessById(string $id): JsonResponse
+    public function getBusinessById(string $id): array
     {
         try {
             $business = $this->businessRepository->findById($id);
 
             if (!$business) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Business not found'
-                ], 404);
+                return [
+                    'status' => 'error',
+                    'message' => 'Business not found',
+                    'data' => null
+                ];
             }
 
-            return response()->json([
-                'success' => true,
+            return [
+                'status' => 'success',
                 'message' => 'Business retrieved successfully',
                 'data' => $business
-            ]);
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve business: ' . $e->getMessage()
-            ], 500);
+            return [
+                'status' => 'error',
+                'message' => 'Failed to retrieve business: ' . $e->getMessage(),
+                'data' => null
+            ];
         }
     }
 
     /**
      * Create new business
      */
-    public function createBusiness(array $data): JsonResponse
+    public function createBusiness(array $data): array
     {
+        $validator = Validator::make($data, [
+            'business' => 'required|string|max:255',
+            'id_business_category' => 'required|exists:business_categories,id',
+            'id_business_status' => 'required|exists:business_statuses,id',
+            'description' => 'nullable|string',
+            'address' => 'nullable|string',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email',
+            'website' => 'nullable|url'
+        ]);
+
+        if ($validator->fails()) {
+            throw ValidationException::withMessages($validator->errors()->toArray());
+        }
+
         try {
-            $validator = Validator::make($data, [
-                'business' => 'required|string|max:255',
-                'id_business_category' => 'required|exists:business_categories,id',
-                'id_business_status' => 'required|exists:business_statuses,id',
-                'description' => 'nullable|string',
-                'address' => 'nullable|string',
-                'phone' => 'nullable|string|max:20',
-                'email' => 'nullable|email',
-                'website' => 'nullable|url'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
             // Add current user ID if not provided
             if (!isset($data['id_user'])) {
                 $data['id_user'] = Auth::id();
@@ -128,160 +148,164 @@ class BusinessUsecase implements BusinessUsecaseInterface
 
             $business = $this->businessRepository->create($data);
 
-            return response()->json([
-                'success' => true,
+            return [
+                'status' => 'success',
                 'message' => 'Business created successfully',
                 'data' => $business
-            ], 201);
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to create business: ' . $e->getMessage()
-            ], 500);
+            return [
+                'status' => 'error',
+                'message' => 'Failed to create business: ' . $e->getMessage(),
+                'data' => null
+            ];
         }
     }
 
     /**
      * Update business
      */
-    public function updateBusiness(string $id, array $data): JsonResponse
+    public function updateBusiness(string $id, array $data): array
     {
+        $validator = Validator::make($data, [
+            'business' => 'sometimes|required|string|max:255',
+            'id_business_category' => 'sometimes|required|exists:business_categories,id',
+            'id_business_status' => 'sometimes|required|exists:business_statuses,id',
+            'description' => 'nullable|string',
+            'address' => 'nullable|string',
+            'phone' => 'nullable|string|max:20',
+            'email' => 'nullable|email',
+            'website' => 'nullable|url'
+        ]);
+
+        if ($validator->fails()) {
+            throw ValidationException::withMessages($validator->errors()->toArray());
+        }
+
         try {
-            $validator = Validator::make($data, [
-                'business' => 'sometimes|required|string|max:255',
-                'id_business_category' => 'sometimes|required|exists:business_categories,id',
-                'id_business_status' => 'sometimes|required|exists:business_statuses,id',
-                'description' => 'nullable|string',
-                'address' => 'nullable|string',
-                'phone' => 'nullable|string|max:20',
-                'email' => 'nullable|email',
-                'website' => 'nullable|url'
-            ]);
-
-            if ($validator->fails()) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Validation failed',
-                    'errors' => $validator->errors()
-                ], 422);
-            }
-
             $business = $this->businessRepository->update($id, $data);
 
             if (!$business) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Business not found'
-                ], 404);
+                return [
+                    'status' => 'error',
+                    'message' => 'Business not found',
+                    'data' => null
+                ];
             }
 
-            return response()->json([
-                'success' => true,
+            return [
+                'status' => 'success',
                 'message' => 'Business updated successfully',
                 'data' => $business
-            ]);
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to update business: ' . $e->getMessage()
-            ], 500);
+            return [
+                'status' => 'error',
+                'message' => 'Failed to update business: ' . $e->getMessage(),
+                'data' => null
+            ];
         }
     }
 
     /**
      * Delete business
      */
-    public function deleteBusiness(string $id): JsonResponse
+    public function deleteBusiness(string $id): array
     {
         try {
             $deleted = $this->businessRepository->delete($id);
 
             if (!$deleted) {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'Business not found'
-                ], 404);
+                return [
+                    'status' => 'error',
+                    'message' => 'Business not found',
+                    'data' => null
+                ];
             }
 
-            return response()->json([
-                'success' => true,
-                'message' => 'Business deleted successfully'
-            ]);
+            return [
+                'status' => 'success',
+                'message' => 'Business deleted successfully',
+                'data' => null
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to delete business: ' . $e->getMessage()
-            ], 500);
-        }
-    }
-
-    /**
-     * Get current user's businesses
-     */
-    public function getMyBusinesses(): JsonResponse
-    {
-        try {
-            $userId = Auth::id();
-            $businesses = $this->businessRepository->getByUserId($userId);
-
-            return response()->json([
-                'success' => true,
-                'message' => 'User businesses retrieved successfully',
-                'data' => $businesses
-            ]);
-
-        } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve businesses: ' . $e->getMessage()
-            ], 500);
+            return [
+                'status' => 'error',
+                'message' => 'Failed to delete business: ' . $e->getMessage(),
+                'data' => null
+            ];
         }
     }
 
     /**
      * Get businesses by category
      */
-    public function getBusinessesByCategory(int $categoryId): JsonResponse
+    public function getBusinessesByCategory(int $categoryId): array
     {
         try {
             $businesses = $this->businessRepository->getByCategory($categoryId);
 
-            return response()->json([
-                'success' => true,
+            return [
+                'status' => 'success',
                 'message' => 'Businesses retrieved successfully',
                 'data' => $businesses
-            ]);
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve businesses: ' . $e->getMessage()
-            ], 500);
+            return [
+                'status' => 'error',
+                'message' => 'Failed to retrieve businesses: ' . $e->getMessage(),
+                'data' => null
+            ];
         }
     }
 
     /**
      * Get business statistics
      */
-    public function getBusinessStatistics(): JsonResponse
+    public function getBusinessStatistics(): array
     {
         try {
             $statistics = $this->businessRepository->getStatistics();
 
-            return response()->json([
-                'success' => true,
+            return [
+                'status' => 'success',
                 'message' => 'Business statistics retrieved successfully',
                 'data' => $statistics
-            ]);
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Failed to retrieve statistics: ' . $e->getMessage()
-            ], 500);
+            return [
+                'status' => 'error',
+                'message' => 'Failed to retrieve statistics: ' . $e->getMessage(),
+                'data' => null
+            ];
+        }
+    }
+
+    /**
+     * Get user's businesses
+     */
+    public function getUserBusinesses(int $userId): array
+    {
+        try {
+            $businesses = $this->businessRepository->getByUserId($userId);
+
+            return [
+                'status' => 'success',
+                'message' => 'User businesses retrieved successfully',
+                'data' => $businesses
+            ];
+
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to retrieve businesses: ' . $e->getMessage(),
+                'data' => null
+            ];
         }
     }
 }

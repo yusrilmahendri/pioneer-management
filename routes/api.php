@@ -22,18 +22,18 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard routes
     Route::prefix('dashboard')->group(function () {
         Route::get('/', [DashboardController::class, 'index']); // Role-based dashboard
-        Route::get('/admin', [DashboardController::class, 'adminDashboard'])->middleware('role:admin');
-        Route::get('/owner', [DashboardController::class, 'ownerDashboard'])->middleware('role:owner');
-        Route::get('/employee', [DashboardController::class, 'employeeDashboard'])->middleware('role:employee');
+        Route::get('/admin', [DashboardController::class, 'adminDashboard'])->middleware('account_role:admin');
+        Route::get('/owner', [DashboardController::class, 'ownerDashboard'])->middleware('account_role:owner');
+        Route::get('/employee', [DashboardController::class, 'employeeDashboard'])->middleware('account_role:employee');
         
         // Expenditure management
-        Route::get('/expenditures', [DashboardController::class, 'getExpenditures'])->middleware('role:admin,owner');
-        Route::post('/expenditures/{uuid}/approve', [DashboardController::class, 'approveExpenditure'])->middleware('role:admin,owner');
+        Route::get('/expenditures', [DashboardController::class, 'getExpenditures'])->middleware('account_role:admin,owner');
+        Route::post('/expenditures/{uuid}/approve', [DashboardController::class, 'approveExpenditure'])->middleware('account_role:admin,owner');
         
         // Reports
-        Route::get('/reports', [DashboardController::class, 'generateReports'])->middleware('role:admin,owner');
+        Route::get('/reports', [DashboardController::class, 'generateReports'])->middleware('account_role:admin,owner');
     });
-
+    
     // User profile routes
     Route::prefix('user')->group(function () {
         Route::get('/profile', [UserController::class, 'getProfile']);
@@ -54,16 +54,14 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::delete('/{uuid}', [ProductController::class, 'destroy']);
     });
     
-    // Business management routes
-    Route::prefix('businesses')->group(function () {
-        Route::get('/', [BusinessController::class, 'index']);
-        Route::get('/my-businesses', [BusinessController::class, 'myBusinesses']);
-        Route::get('/statistics', [BusinessController::class, 'statistics']);
-        Route::get('/category/{categoryId}', [BusinessController::class, 'byCategory']);
-        Route::get('/{id}', [BusinessController::class, 'show']);
-        
-        // Owner and Admin can create/modify businesses
-        Route::middleware('role:admin,owner')->group(function () {
+    // Business management routes (Admin only)
+    Route::middleware('account_role:admin')->group(function () {
+        Route::prefix('businesses')->group(function () {
+            Route::get('/', [BusinessController::class, 'index']);
+            Route::get('/my-businesses', [BusinessController::class, 'myBusinesses']);
+            Route::get('/statistics', [BusinessController::class, 'statistics']);
+            Route::get('/category/{categoryId}', [BusinessController::class, 'byCategory']);
+            Route::get('/{id}', [BusinessController::class, 'show']);
             Route::post('/', [BusinessController::class, 'store']);
             Route::put('/{id}', [BusinessController::class, 'update']);
             Route::delete('/{id}', [BusinessController::class, 'destroy']);
@@ -71,20 +69,20 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     // Role-based user creation routes
-    Route::middleware('role:admin')->group(function () {
+    Route::middleware('account_role:admin')->group(function () {
         Route::prefix('admin')->group(function () {
             Route::post('/create-owner', [UserController::class, 'createOwner']);
         });
     });
 
-    Route::middleware('role:owner')->group(function () {
+    Route::middleware('account_role:owner')->group(function () {
         Route::prefix('owner')->group(function () {
             Route::post('/create-employee', [UserController::class, 'createEmployee']);
         });
     });
 
     // User management routes (admin/owner only)
-    Route::middleware('role:admin,owner')->group(function () {
+    Route::middleware('account_role:admin,owner')->group(function () {
         Route::prefix('users')->group(function () {
             Route::get('/', [UserController::class, 'index']);
             Route::get('/{uuid}', [UserController::class, 'show']);

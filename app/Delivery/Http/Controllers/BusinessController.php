@@ -24,10 +24,13 @@ class BusinessController extends Controller
     {
         $params = $request->only([
             'search', 'category_id', 'status_id', 'user_id',
-            'paginate', 'per_page', 'order_by', 'order_direction'
+            'order_by', 'order_direction'
         ]);
 
-        return $this->businessUsecase->getAllBusinesses($params);
+        $result = $this->businessUsecase->getAllBusinesses($params);
+        
+        $statusCode = $result['status'] === 'success' ? 200 : 500;
+        return response()->json($result, $statusCode);
     }
 
     /**
@@ -35,7 +38,17 @@ class BusinessController extends Controller
      */
     public function store(Request $request): JsonResponse
     {
-        return $this->businessUsecase->createBusiness($request->all());
+        try {
+            $result = $this->businessUsecase->createBusiness($request->all());
+            $statusCode = $result['status'] === 'success' ? 201 : 500;
+            return response()->json($result, $statusCode);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        }
     }
 
     /**
@@ -43,7 +56,15 @@ class BusinessController extends Controller
      */
     public function show(string $id): JsonResponse
     {
-        return $this->businessUsecase->getBusinessById($id);
+        $result = $this->businessUsecase->getBusinessById($id);
+        
+        $statusCode = match($result['status']) {
+            'success' => 200,
+            'error' => $result['message'] === 'Business not found' ? 404 : 500,
+            default => 500
+        };
+        
+        return response()->json($result, $statusCode);
     }
 
     /**
@@ -51,7 +72,23 @@ class BusinessController extends Controller
      */
     public function update(Request $request, string $id): JsonResponse
     {
-        return $this->businessUsecase->updateBusiness($id, $request->all());
+        try {
+            $result = $this->businessUsecase->updateBusiness($id, $request->all());
+            
+            $statusCode = match($result['status']) {
+                'success' => 200,
+                'error' => $result['message'] === 'Business not found' ? 404 : 500,
+                default => 500
+            };
+            
+            return response()->json($result, $statusCode);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
+        }
     }
 
     /**
@@ -59,7 +96,15 @@ class BusinessController extends Controller
      */
     public function destroy(string $id): JsonResponse
     {
-        return $this->businessUsecase->deleteBusiness($id);
+        $result = $this->businessUsecase->deleteBusiness($id);
+        
+        $statusCode = match($result['status']) {
+            'success' => 200,
+            'error' => $result['message'] === 'Business not found' ? 404 : 500,
+            default => 500
+        };
+        
+        return response()->json($result, $statusCode);
     }
 
     /**
@@ -67,7 +112,11 @@ class BusinessController extends Controller
      */
     public function myBusinesses(): JsonResponse
     {
-        return $this->businessUsecase->getMyBusinesses();
+        $userId = auth()->id();
+        $result = $this->businessUsecase->getUserBusinesses($userId);
+        
+        $statusCode = $result['status'] === 'success' ? 200 : 500;
+        return response()->json($result, $statusCode);
     }
 
     /**
@@ -75,7 +124,10 @@ class BusinessController extends Controller
      */
     public function byCategory(int $categoryId): JsonResponse
     {
-        return $this->businessUsecase->getBusinessesByCategory($categoryId);
+        $result = $this->businessUsecase->getBusinessesByCategory($categoryId);
+        
+        $statusCode = $result['status'] === 'success' ? 200 : 500;
+        return response()->json($result, $statusCode);
     }
 
     /**
@@ -83,6 +135,9 @@ class BusinessController extends Controller
      */
     public function statistics(): JsonResponse
     {
-        return $this->businessUsecase->getBusinessStatistics();
+        $result = $this->businessUsecase->getBusinessStatistics();
+        
+        $statusCode = $result['status'] === 'success' ? 200 : 500;
+        return response()->json($result, $statusCode);
     }
 }
