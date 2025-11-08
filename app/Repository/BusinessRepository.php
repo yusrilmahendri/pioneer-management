@@ -145,13 +145,13 @@ class BusinessRepository implements BusinessRepositoryInterface
     {
         $total = $this->model->count();
         $active = $this->model->whereHas('businessStatus', function($query) {
-            $query->where('status', 'active');
+            $query->where('business_status', 'active');
         })->count();
         
-        $byCategory = $this->model->join('business_categories', 'business.id_business_category', '=', 'business_categories.id')
-            ->groupBy('business_categories.category')
-            ->selectRaw('business_categories.category, COUNT(*) as count')
-            ->pluck('count', 'category')
+        $byCategory = $this->model->join('business_category', 'business.id_business_category', '=', 'business_category.id')
+            ->groupBy('business_category.business_category')
+            ->selectRaw('business_category.business_category, COUNT(*) as count')
+            ->pluck('count', 'business_category')
             ->toArray();
 
         return [

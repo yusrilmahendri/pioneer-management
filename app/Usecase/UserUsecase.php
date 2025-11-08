@@ -699,8 +699,8 @@ class UserUsecase implements UserUsecaseInterface
                 return [
                     'id' => $business->id,
                     'name' => $business->business ?? '',
-                    'category' => $business->businessCategory->business_category ?? null,
-                    'status' => $business->businessStatus->business_status ?? null,
+                    'business_category' => $business->businessCategory->business_category ?? null,
+                    'business_status' => $business->businessStatus->business_status ?? null,
                     'start_date' => $business->start_date ?? null
                 ];
             })->toArray() : [],
