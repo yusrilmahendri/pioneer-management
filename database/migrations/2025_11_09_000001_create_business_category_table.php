@@ -12,19 +12,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('product', function (Blueprint $table) {
-            $table->bigInteger('id')->primary();
-            $table->string('product');
-            $table->text('description')->nullable();
-            $table->decimal('price', 10, 2);
-            $table->integer('stock');
+        Schema::create('business_category', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('business_category');
             $table->timestamp('created_at')->nullable()->default(DB::raw('CURRENT_TIMESTAMP'));
             $table->string('created_by')->nullable();
             $table->timestamp('updated_at')->nullable()->default(DB::raw('NULL ON UPDATE CURRENT_TIMESTAMP'));
             $table->string('updated_by')->nullable();
-            $table->unsignedBigInteger('id_business');
-            $table->unsignedBigInteger('id_product_category');
-            $table->unsignedBigInteger('id_product_status');
         });
     }
 
@@ -33,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('product');
+        Schema::dropIfExists('business_category');
     }
 };

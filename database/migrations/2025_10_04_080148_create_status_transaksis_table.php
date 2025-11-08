@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -11,10 +12,13 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('status_transaksis', function (Blueprint $table) {
-            $table->id();
-            $table->string('name_status_transaksi');
-            $table->timestamps();
+        Schema::create('transaction_status', function (Blueprint $table) {
+            $table->bigIncrements('id');
+            $table->string('transaction_status');
+            $table->timestamp('created_at')->nullable()->default(DB::raw('CURRENT_TIMESTAMP'));
+            $table->string('created_by')->nullable();
+            $table->timestamp('updated_at')->nullable()->default(DB::raw('NULL ON UPDATE CURRENT_TIMESTAMP'));
+            $table->string('updated_by')->nullable();
         });
     }
 
@@ -23,6 +27,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('status_transaksis');
+        Schema::dropIfExists('transaction_status');
     }
 };

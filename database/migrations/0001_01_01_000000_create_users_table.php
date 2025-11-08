@@ -3,6 +3,7 @@
 use Illuminate\Database\Migrations\Migration;
 use Illuminate\Database\Schema\Blueprint;
 use Illuminate\Support\Facades\Schema;
+use Illuminate\Support\Facades\DB;
 
 return new class extends Migration
 {
@@ -13,24 +14,27 @@ return new class extends Migration
     {
         Schema::create('users', function (Blueprint $table) {
             $table->bigInteger('id')->primary();
-            $table->uuid('uuid')->unique()->nullable();
             $table->string('name');
             $table->string('email')->unique();
-            $table->string('username')->unique();
+            $table->string('username')->unique()->nullable();
             $table->timestamp('email_verified_at')->nullable();
             $table->string('password');
             $table->string('phone');
-            $table->date('birth_of_date');
-            $table->string('birth_of_place');
-            $table->enum('gender', ['male', 'female']);
-            $table->date('start_date');
+            $table->date('birth_of_date')->nullable();
+            $table->string('birth_of_place')->nullable();
+            $table->string('gender')->nullable();
+            $table->date('start_date')->nullable();
             $table->date('end_date')->nullable();
-            $table->string('placement');
-            $table->string('job_role');
-            $table->string('account_role');
+            $table->string('placement')->nullable();
+            $table->string('job_role')->nullable();
+            $table->string('account_role')->nullable();
             $table->decimal('salary', 10, 2)->nullable();
             $table->rememberToken();
-            $table->timestamps();
+            $table->timestamp('created_at')->nullable()->default(DB::raw('CURRENT_TIMESTAMP'));
+            $table->string('created_by')->nullable();
+            $table->timestamp('updated_at')->nullable()->default(DB::raw('NULL ON UPDATE CURRENT_TIMESTAMP'));
+            $table->string('updated_by')->nullable();
+            $table->string('uuid')->unique()->nullable();
         });
 
         Schema::create('password_reset_tokens', function (Blueprint $table) {

@@ -12,18 +12,19 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('pembayarans', function (Blueprint $table) {
-            $table->uuid('uuid')->primary();
-            $table->uuid('user_id');
-            $table->uuid('product_id');
-            $table->uuid('kode_voucher')->nullable();
-            $table->string('count');
-            $table->string('price');
-            $table->string('date_order');
+            $table->char('uuid', 36)->primary();
+            $table->char('user_id', 36);
+            $table->char('product_id', 36);
+            $table->char('kode_voucher', 36)->nullable();
+            $table->unsignedInteger('count');
+            $table->decimal('price', 15, 2);
+            $table->date('date_order');
             $table->timestamps();
 
-            $table->foreign('user_id')->references('uuid')->on('users')->onDelete('cascade');
-            $table->foreign('product_id')->references('uuid')->on('products')->onDelete('cascade');
-            $table->foreign('kode_voucher')->references('uuid')->on('vouchers');
+            $table->index(['kode_voucher'], 'fk_pembayarans_kode_voucher');
+            $table->index(['user_id'], 'idx_pembayarans_user_id');
+            $table->index(['product_id'], 'idx_pembayarans_product_id');
+            $table->index(['date_order'], 'idx_pembayarans_date_order');
         });
     }
 

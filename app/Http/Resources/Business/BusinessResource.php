@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Resources\Bisnis;
+namespace App\Http\Resources\Business;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 
-class BisnisResource extends JsonResource
+class BusinessResource extends JsonResource
 {
     /**
      * Transform the resource into an array.
@@ -26,8 +26,8 @@ class BisnisResource extends JsonResource
                 'id' => $this->kabupaten_id,
                 'nama' => $this->kabupaten_nama,
             ],
-            'kategori' => $this->categoryBusines->name_busines ?? null,
-            'status' =>  $this->statusBusines->name_status_busines ?? null,
+            'kategori' => $this->businessCategory->name_busines ?? null,
+            'status' =>  $this->businessStatus->name_status_busines ?? null,
             'start_date' => $this->start_date,
             'created_at' => $this->created_at,
         ];

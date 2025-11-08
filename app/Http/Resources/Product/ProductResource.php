@@ -19,10 +19,29 @@ class ProductResource extends JsonResource
         return [
             'uuid' => $this->uuid,
             'name' => $this->name_product,
+            'description' => $this->deskripsi,
             'price' => $this->price,
             'stock' => $this->stock,
-            'category' => $this->category,
-            'status' => $this->status,
+            'category' => $this->whenLoaded('categoryProduct', function () {
+                return [
+                    'uuid' => $this->categoryProduct->uuid,
+                    'name' => $this->categoryProduct->category_product ?? 'Unknown Category',
+                ];
+            }),
+            'status' => $this->whenLoaded('statusProduct', function () {
+                return [
+                    'uuid' => $this->statusProduct->uuid,
+                    'name' => $this->statusProduct->name_status ?? 'Unknown Status',
+                ];
+            }),
+            'user' => $this->whenLoaded('user', function () {
+                return [
+                    'uuid' => $this->user->uuid,
+                    'name' => $this->user->name,
+                ];
+            }),
+            'created_at' => $this->created_at,
+            'updated_at' => $this->updated_at,
         ];
     }
 }

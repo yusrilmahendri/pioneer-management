@@ -11,19 +11,18 @@ return new class extends Migration
      */
     public function up(): void
     {
-        Schema::create('vouchers', function (Blueprint $table) {
-            $table->uuid('uuid')->primary();
-            $table->uuid('user_id');          // FK ke users.uuid     // FK ke status_products.uuid
-            $table->unsignedBigInteger('status_product_id'); // FK ke status_products.id
-            $table->string('kode_promo')->unique();
-            $table->string('tipe_promo');     // e.g. percentage, nominal
+        Schema::create('voucher', function (Blueprint $table) {
+            $table->char('uuid', 36)->primary();
+            $table->char('user_id', 36);
+            $table->unsignedBigInteger('status_product_id');
+            $table->string('kode_promo');
+            $table->string('tipe_promo');
             $table->date('start_date');
             $table->date('end_date');
             $table->integer('kouta');
             $table->timestamps();
 
-            $table->foreign('user_id')->references('uuid')->on('users')->onDelete('cascade');
-            $table->foreign('status_product_id')->references('id')->on('status_products');
+            $table->index(['user_id'], 'vouchers_user_id_foreign');
         });
     }
 
@@ -32,6 +31,6 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::dropIfExists('vouchers');
+        Schema::dropIfExists('voucher');
     }
 };

@@ -15,6 +15,7 @@ class User extends Authenticatable
 {
     use HasApiTokens, HasFactory, Notifiable, HasRoles;
     
+    protected $table = 'users'; // This tells Laravel which table to use
     protected $primaryKey = 'id';
     protected $keyType = 'int';
     public $incrementing = false;
@@ -41,6 +42,22 @@ class User extends Authenticatable
         'salary',
         'uuid',
     ];
+
+    /**
+     * Get the businesses that the user belongs to (many-to-many)
+     */
+    public function businesses()
+    {
+        return $this->belongsToMany(Business::class, 'business_account', 'id_user', 'id_business');
+    }
+
+    /**
+     * Get the user's primary business (first business they're assigned to)
+     */
+    public function primaryBusiness()
+    {
+        return $this->belongsToMany(Business::class, 'business_account', 'id_user', 'id_business')->first();
+    }
 
     /**
      * The attributes that should be hidden for serialization.

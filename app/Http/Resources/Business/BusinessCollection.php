@@ -1,12 +1,12 @@
 <?php
 
-namespace App\Http\Resources\Bisnis;
+namespace App\Http\Resources\Business;
 
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\ResourceCollection;
-use App\Http\Resources\Bisnis\BisnisResource;
+use App\Http\Resources\Business\BusinessResource;
 
-class BisnisCollection extends ResourceCollection
+class BusinessCollection extends ResourceCollection
 {
     /**
      * Transform the resource collection into an array.
@@ -16,7 +16,7 @@ class BisnisCollection extends ResourceCollection
     public function toArray(Request $request): array
     {
        return [
-            'data' => BisnisResource::collection($this->collection),
+            'data' => nisResource::collection($this->collection),
             'meta' => [
                 'current_page' => $this->currentPage(),
                 'from' => $this->firstItem(),
