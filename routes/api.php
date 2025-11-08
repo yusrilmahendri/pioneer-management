@@ -22,16 +22,16 @@ Route::middleware('auth:sanctum')->group(function () {
     // Dashboard routes
     Route::prefix('dashboard')->group(function () {
         Route::get('/', [DashboardController::class, 'index']); // Role-based dashboard
-        Route::get('/admin', [DashboardController::class, 'adminDashboard'])->middleware([\App\Http\Middleware\CheckAccountRole::class . ':admin']);
-        Route::get('/owner', [DashboardController::class, 'ownerDashboard'])->middleware([\App\Http\Middleware\CheckAccountRole::class . ':owner']);
+        Route::get('/admin', [DashboardController::class, 'adminDashboard'])->middleware('role:admin');
+        Route::get('/owner', [DashboardController::class, 'ownerDashboard'])->middleware('role:owner');
         Route::get('/employee', [DashboardController::class, 'employeeDashboard'])->middleware('role:employee');
         
         // Expenditure management
-        Route::get('/expenditures', [DashboardController::class, 'getExpenditures'])->middleware([\App\Http\Middleware\CheckAccountRole::class . ':admin,owner']);
-        Route::post('/expenditures/{uuid}/approve', [DashboardController::class, 'approveExpenditure'])->middleware([\App\Http\Middleware\CheckAccountRole::class . ':admin,owner']);
+        Route::get('/expenditures', [DashboardController::class, 'getExpenditures'])->middleware('role:admin,owner');
+        Route::post('/expenditures/{uuid}/approve', [DashboardController::class, 'approveExpenditure'])->middleware('role:admin,owner');
         
         // Reports
-        Route::get('/reports', [DashboardController::class, 'generateReports'])->middleware([\App\Http\Middleware\CheckAccountRole::class . ':admin,owner']);
+        Route::get('/reports', [DashboardController::class, 'generateReports'])->middleware('role:admin,owner');
     });
 
     // User profile routes
@@ -63,7 +63,7 @@ Route::middleware('auth:sanctum')->group(function () {
         Route::get('/{id}', [BusinessController::class, 'show']);
         
         // Owner and Admin can create/modify businesses
-        Route::middleware([\App\Http\Middleware\CheckAccountRole::class . ':admin,owner'])->group(function () {
+        Route::middleware('role:admin,owner')->group(function () {
             Route::post('/', [BusinessController::class, 'store']);
             Route::put('/{id}', [BusinessController::class, 'update']);
             Route::delete('/{id}', [BusinessController::class, 'destroy']);
@@ -71,20 +71,20 @@ Route::middleware('auth:sanctum')->group(function () {
     });
     
     // Role-based user creation routes
-    Route::middleware([\App\Http\Middleware\CheckAccountRole::class . ':admin'])->group(function () {
+    Route::middleware('role:admin')->group(function () {
         Route::prefix('admin')->group(function () {
             Route::post('/create-owner', [UserController::class, 'createOwner']);
         });
     });
 
-    Route::middleware([\App\Http\Middleware\CheckAccountRole::class . ':owner'])->group(function () {
+    Route::middleware('role:owner')->group(function () {
         Route::prefix('owner')->group(function () {
             Route::post('/create-employee', [UserController::class, 'createEmployee']);
         });
     });
 
     // User management routes (admin/owner only)
-    Route::middleware([\App\Http\Middleware\CheckAccountRole::class . ':admin,owner'])->group(function () {
+    Route::middleware('role:admin,owner')->group(function () {
         Route::prefix('users')->group(function () {
             Route::get('/', [UserController::class, 'index']);
             Route::get('/{uuid}', [UserController::class, 'show']);
