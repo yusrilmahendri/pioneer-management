@@ -695,7 +695,6 @@ class UserUsecase implements UserUsecaseInterface
             'placement' => $user->placement,
             'job_role' => $user->job_role,
             'salary' => $user->salary,
-            'business' => $this->getUserPrimaryBusiness($user),
             'businesses' => $user->businesses ? $user->businesses->map(function($business) {
                 return [
                     'id' => $business->id,
@@ -707,26 +706,6 @@ class UserUsecase implements UserUsecaseInterface
             })->toArray() : [],
             'created_at' => $user->created_at,
             'updated_at' => $user->updated_at
-        ];
-    }
-
-    /**
-     * Get user's primary business (first business assigned)
-     */
-    protected function getUserPrimaryBusiness($user): ?array
-    {
-        $primaryBusiness = $user->businesses()->first();
-        
-        if (!$primaryBusiness) {
-            return null;
-        }
-
-        return [
-            'id' => $primaryBusiness->id,
-            'name' => $primaryBusiness->business ?? '',
-            'category' => $primaryBusiness->businessCategory->business_category ?? null,
-            'status' => $primaryBusiness->businessStatus->business_status ?? null,
-            'start_date' => $primaryBusiness->start_date ?? null
         ];
     }
 }
