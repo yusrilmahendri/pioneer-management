@@ -21,13 +21,43 @@ class PembayaranFactory extends Factory
     public function definition(): array
     {
         return [
-            'uuid' => Str::uuid(),
-            'user_id' =>  User::inRandomOrder()->first()?->uuid, // relasi ke user
-            'product_id' => Products::inRandomOrder()->first(), // relasi ke product
-            'kode_voucher' => null, // bisa null, atau Voucher::factory()
-            'count' => $this->faker->numberBetween(1, 10),
-            'price' => $this->faker->randomFloat(2, 10000, 1000000),
-            'date_order' => $this->faker->dateTimeThisYear()->format('Y-m-d'),
+            'uuid' => (string) Str::uuid(),
+            'user_id' => fake()->numberBetween(1, 10), // Will be replaced with actual user IDs
+            'product_id' => fake()->numberBetween(1, 20), // Will be replaced with actual product IDs
+            'kode_voucher' => fake()->optional(0.3)->uuid(), // 30% chance of having voucher
+            'count' => fake()->numberBetween(1, 5),
+            'price' => fake()->randomFloat(2, 10000, 1000000),
+            'date_order' => fake()->dateTimeBetween('-6 months', 'now')->format('Y-m-d'),
         ];
+    }
+
+    /**
+     * Create payment without voucher.
+     */
+    public function withoutVoucher(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'kode_voucher' => null,
+        ]);
+    }
+
+    /**
+     * Create payment with voucher.
+     */
+    public function withVoucher(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'kode_voucher' => (string) Str::uuid(), // Will be replaced with actual voucher ID
+        ]);
+    }
+
+    /**
+     * Create recent payment.
+     */
+    public function recent(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'date_order' => fake()->dateTimeBetween('-1 month', 'now')->format('Y-m-d'),
+        ]);
     }
 }

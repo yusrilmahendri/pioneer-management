@@ -2,9 +2,9 @@
 
 namespace Database\Seeders;
 
-use Illuminate\Database\Console\Seeds\WithoutModelEvents;
 use Illuminate\Database\Seeder;
-use App\Models\User;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Support\Str;
 
 class SuperAdminTableSeeder extends Seeder
 {
@@ -13,9 +13,14 @@ class SuperAdminTableSeeder extends Seeder
      */
     public function run()
     {
-         $user = User::create([
+        $adminId = DB::selectOne('SELECT UUID_SHORT() as id')->id;
+        
+        DB::table('users')->insertOrIgnore([
+            'id' => $adminId,
+            'uuid' => (string) Str::uuid(),
             'name' => 'Yusril Mahendri',
             'email' => 'pioneersolve@gmail.com', 
+            'username' => 'yusrilmahendri',
             'password' => bcrypt('Bismillah@1'),
             'email_verified_at' => now(),
             'phone' => '081234567890',
@@ -24,13 +29,14 @@ class SuperAdminTableSeeder extends Seeder
             'gender' => 'male',
             'start_date' => '2020-01-01',
             'placement' => 'Head Office',
-            'job_role' => 'Administrator',
-            'account_role' => 'super-admin',
+            'job_role' => 'System Administrator',
+            'account_role' => 'admin',
             'salary' => 10000000,
+            'created_at' => now(),
+            'created_by' => 'system',
         ]);
 
-        $user->assignRole('super-admin');
-
-        return $user;
+        // Note: Role assignment would be handled by Spatie Permission package if still using it
+        // $user->assignRole('admin');
     }
 }
