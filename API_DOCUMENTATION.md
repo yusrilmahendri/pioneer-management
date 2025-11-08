@@ -19,11 +19,21 @@ For complete role hierarchy documentation, see [ROLE_HIERARCHY_DOCUMENTATION.md]
 
 ## Authentication
 
-All dashboard endpoints require authentication using Laravel Sanctum tokens.
+All protected endpoints require authentication using Laravel Sanctum tokens.
+
+### Required Headers for Protected Routes
+
+```http
+Authorization: Bearer {token}
+Content-Type: application/json
+Accept: application/json
+```
 
 ### Login
+
 ```http
-POST /api/login
+POST /api/auth/login
+Content-Type: application/json
 ```
 
 **Request Body:**
@@ -34,206 +44,288 @@ POST /api/login
 }
 ```
 
-**Response:**
+**Success Response (200):**
 ```json
 {
-    "status": "success",
-    "message": "Login successful.",
-    "token": "1|abc123...",
-    "user": {
-        "name": "John Doe",
-        "email": "user@example.com",
-        "username": "johndoe",
-        "account_role": "employee",
-        "job_role": "Sales Representative",
-        "placement": "Jakarta Office",
-        "business": {
-            "id": 1,
-            "name": "Warung Kopi Santai"
-        }
-    },
-    "dashboard_route": "/dashboard/employee"
+    "success": true,
+    "message": "Login successful",
+    "data": {
+        "user": {
+            "id": "uuid-string",
+            "name": "John Doe",
+            "email": "user@example.com",
+            "username": "johndoe",
+            "account_role": "employee",
+            "job_role": "Sales Representative",
+            "placement": "Jakarta Office",
+            "phone": "1234567890",
+            "business": {
+                "id": 1,
+                "name": "Warung Kopi Santai",
+                "category": "Food & Beverage"
+            }
+        },
+        "token": "1|abc123def456...",
+        "token_type": "Bearer"
+    }
 }
 ```
 
-### Headers Required for Protected Routes
-```
-Authorization: Bearer {token}
-Content-Type: application/json
-Accept: application/json
-```
-
-## Dashboard Routes
-
-### Main Dashboard
-```http
-GET /api/dashboard
-```
-Returns role-specific dashboard data based on authenticated user's `account_role`.
-
----
-
-## Employee Dashboard
-
-### Employee Dashboard Index
-```http
-GET /api/dashboard/employee
-```
-
-**Response:**
+**Error Response (401):**
 ```json
 {
-    "status": "success",
-    "message": "Employee dashboard data retrieved successfully",
+    "success": false,
+    "message": "Invalid credentials"
+}
+```
+
+### Register (Admin Creation)
+
+```http
+POST /api/auth/register
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+    "name": "System Admin",
+    "email": "admin@system.com",
+    "username": "sysadmin",
+    "password": "securepassword123",
+    "password_confirmation": "securepassword123"
+}
+```
+
+**Success Response (201):**
+```json
+{
+    "success": true,
+    "message": "User registered successfully",
     "data": {
-        "overview": {
-            "total_products": 25,
-            "total_transactions": 150,
-            "total_revenue": 1500000
+        "user": {
+            "id": "uuid-string",
+            "name": "System Admin",
+            "email": "admin@system.com",
+            "username": "sysadmin",
+            "account_role": "admin",
+            "created_at": "2025-11-09T10:00:00Z"
         },
-        "recent_products": [...],
-        "user_info": {
+        "token": "1|abc123def456..."
+    }
+}
+```
+
+### Forgot Password
+
+```http
+POST /api/auth/forgot-password
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+    "email": "user@example.com"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Password reset link has been sent to your email"
+}
+```
+
+### Reset Password
+
+```http
+POST /api/auth/reset-password
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+    "email": "user@example.com",
+    "token": "reset_token_here",
+    "password": "newpassword123",
+    "password_confirmation": "newpassword123"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Password has been reset successfully"
+}
+```
+
+## Role-Based User Creation
+
+### Admin Creates Owner
+
+```http
+POST /api/admin/create-owner
+Authorization: Bearer {admin_token}
+Content-Type: application/json
+```
+
+**Required Role:** Admin
+
+**Request Body:**
+```json
+{
+    "name": "John Doe",
+    "email": "john@example.com",
+    "username": "johndoe",
+    "password": "password123",
+    "password_confirmation": "password123",
+    "phone": "1234567890",
+    "business_name": "John's Coffee Shop",
+    "business_description": "Premium coffee and pastries",
+    "business_category": "Food & Beverage"
+}
+```
+
+**Success Response (201):**
+```json
+{
+    "success": true,
+    "message": "Owner created successfully",
+    "data": {
+        "user": {
+            "id": "uuid-string",
             "name": "John Doe",
-            "placement": "Jakarta Office",
-            "job_role": "Sales Representative",
-            "account_role": "employee"
-        },
-        "business_info": {
-            "id": 1,
-            "name": "Warung Kopi Santai",
-            "category": "Food & Beverage",
-            "status": "Active",
-            "location": {
-                "provinsi": "Sumatera Selatan",
-                "kabupaten": "Kota Palembang"
-            },
-            "start_date": "2021-03-12"
+            "email": "john@example.com",
+            "username": "johndoe",
+            "account_role": "owner",
+            "phone": "1234567890",
+            "created_at": "2025-11-09T10:30:00Z"
         }
     }
 }
 ```
 
-### Products Management
+### Owner Creates Employee
 
-#### Get Employee Products
 ```http
-GET /api/dashboard/employee/products
+POST /api/owner/create-employee
+Authorization: Bearer {owner_token}
+Content-Type: application/json
 ```
 
-**Query Parameters:**
-- `search` (optional): Search by product name or description
-- `category_id` (optional): Filter by category UUID
-- `per_page` (optional): Items per page (default: 10)
-
-#### Create New Product
-```http
-POST /api/dashboard/employee/products
-```
+**Required Role:** Owner
 
 **Request Body:**
 ```json
 {
-    "category_id": "uuid-here",
-    "status_id": "uuid-here", 
-    "name_product": "Product Name",
-    "deskripsi": "Product description",
-    "price": 50000,
-    "stock": 100
+    "name": "Jane Smith",
+    "email": "jane@example.com",
+    "username": "janesmith",
+    "password": "password123",
+    "password_confirmation": "password123",
+    "phone": "0987654321",
+    "birth_of_date": "1990-05-15",
+    "birth_of_place": "Jakarta",
+    "gender": "female",
+    "start_date": "2025-11-09",
+    "placement": "Jakarta Office",
+    "job_role": "Cashier",
+    "salary": 5000000,
+    "business_id": 1
 }
 ```
 
-#### Update Product
-```http
-PUT /api/dashboard/employee/products/{uuid}
-```
-
-**Request Body:** (all fields optional)
+**Success Response (201):**
 ```json
 {
-    "name_product": "Updated Product Name",
-    "price": 55000,
-    "stock": 90
+    "success": true,
+    "message": "Employee created successfully",
+    "data": {
+        "user": {
+            "id": "uuid-string",
+            "name": "Jane Smith",
+            "email": "jane@example.com",
+            "username": "janesmith",
+            "account_role": "employee",
+            "job_role": "Cashier",
+            "placement": "Jakarta Office",
+            "salary": 5000000,
+            "business_id": 1,
+            "created_at": "2025-11-09T10:30:00Z"
+        }
+    }
 }
 ```
 
-### Transaction Histories
+## Dashboard Routes
+
+### Main Dashboard
+
 ```http
-GET /api/dashboard/employee/histories
+GET /api/dashboard
+Authorization: Bearer {token}
 ```
 
-**Query Parameters:**
-- `start_date` (optional): Filter from date (Y-m-d format)
-- `end_date` (optional): Filter to date (Y-m-d format)
-- `per_page` (optional): Items per page (default: 15)
+**Description:** Returns role-specific dashboard data based on authenticated user's account_role.
 
-### Expenditures Management
-
-#### Get Employee Expenditures
-```http
-GET /api/dashboard/employee/expenditures
-```
-
-**Query Parameters:**
-- `start_date` (optional): Filter from date
-- `end_date` (optional): Filter to date
-- `category` (optional): Filter by expense category
-- `per_page` (optional): Items per page (default: 15)
-
-#### Create New Expenditure
-```http
-POST /api/dashboard/employee/expenditures
-```
-
-**Request Body:**
+**Success Response (200):**
 ```json
 {
-    "category": "Transportation",
-    "description": "Taxi fare for client meeting",
-    "amount": 50000,
-    "receipt_image": "base64_encoded_image_or_file_path"
+    "success": true,
+    "message": "Dashboard data retrieved successfully",
+    "data": {
+        "role": "employee",
+        "redirect_url": "/dashboard/employee"
+    }
 }
 ```
 
-### Vouchers Management
+### Admin Dashboard
 
-#### Get Employee Vouchers
 ```http
-GET /api/dashboard/employee/vouchers
+GET /api/dashboard/admin
+Authorization: Bearer {admin_token}
 ```
 
-**Query Parameters:**
-- `status` (optional): active, expired, used_up
-- `per_page` (optional): Items per page (default: 15)
+**Required Role:** Admin
 
-#### Create New Voucher
-```http
-POST /api/dashboard/employee/vouchers
-```
-
-**Request Body:**
+**Success Response (200):**
 ```json
 {
-    "kode_promo": "DISCOUNT50",
-    "tipe_promo": "Percentage Discount",
-    "start_date": "2025-01-01",
-    "end_date": "2025-12-31",
-    "kouta": 100
+    "success": true,
+    "message": "Admin dashboard data retrieved successfully",
+    "data": {
+        "overview": {
+            "total_users": 150,
+            "total_businesses": 25,
+            "total_revenue": 50000000,
+            "monthly_growth": 15.2,
+            "pending_expenditures": 5,
+            "system_alerts": 2
+        },
+        "recent_activities": [...],
+        "user_statistics": {...}
+    }
 }
 ```
 
----
+### Owner Dashboard
 
-## Owner Dashboard
-
-### Owner Dashboard Index
 ```http
 GET /api/dashboard/owner
+Authorization: Bearer {owner_token}
 ```
 
-**Response:**
+**Required Role:** Owner
+
+**Success Response (200):**
 ```json
 {
-    "status": "success",
+    "success": true,
     "message": "Owner dashboard data retrieved successfully",
     "data": {
         "overview": {
@@ -246,153 +338,1144 @@ GET /api/dashboard/owner
             "monthly_profit": 300000
         },
         "monthly_trends": [...],
-        "top_employees": [...]
+        "top_employees": [...],
+        "business_performance": {...}
     }
 }
 ```
 
-### Business Analytics
+### Employee Dashboard
+
 ```http
-GET /api/dashboard/owner/analytics
+GET /api/dashboard/employee
+Authorization: Bearer {employee_token}
+```
+
+**Required Role:** Employee
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Employee dashboard data retrieved successfully",
+    "data": {
+        "overview": {
+            "total_products": 25,
+            "total_transactions": 150,
+            "total_revenue": 1500000,
+            "monthly_sales": 300000
+        },
+        "recent_products": [...],
+        "user_info": {
+            "name": "John Doe",
+            "placement": "Jakarta Office",
+            "job_role": "Sales Representative",
+            "account_role": "employee"
+        },
+        "business_info": {
+            "id": 1,
+            "name": "Warung Kopi Santai",
+            "category": "Food & Beverage",
+            "status": "Active"
+        }
+    }
+}
+```
+
+## User Profile Management
+
+### Get User Profile
+
+```http
+GET /api/user/profile
+Authorization: Bearer {token}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Profile retrieved successfully",
+    "data": {
+        "user": {
+            "id": "uuid-string",
+            "name": "John Doe",
+            "email": "john@example.com",
+            "username": "johndoe",
+            "account_role": "employee",
+            "phone": "1234567890",
+            "birth_of_date": "1990-01-15",
+            "birth_of_place": "Jakarta",
+            "gender": "male",
+            "job_role": "Sales Representative",
+            "placement": "Jakarta Office",
+            "salary": 5000000,
+            "business_id": 1,
+            "created_at": "2025-01-01T00:00:00Z",
+            "updated_at": "2025-11-09T10:00:00Z"
+        }
+    }
+}
+```
+
+### Update User Profile
+
+```http
+PUT /api/user/profile
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request Body:** (all fields optional)
+```json
+{
+    "name": "John Updated Doe",
+    "phone": "0987654321",
+    "birth_of_date": "1990-01-15",
+    "birth_of_place": "Jakarta",
+    "gender": "male"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Profile updated successfully",
+    "data": {
+        "user": {
+            "id": "uuid-string",
+            "name": "John Updated Doe",
+            "email": "john@example.com",
+            "updated_at": "2025-11-09T10:30:00Z"
+        }
+    }
+}
+```
+
+### Change Password
+
+```http
+POST /api/user/change-password
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+    "current_password": "oldpassword123",
+    "new_password": "newpassword123",
+    "new_password_confirmation": "newpassword123"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Password changed successfully"
+}
+```
+
+### Get Dashboard Data
+
+```http
+GET /api/user/dashboard
+Authorization: Bearer {token}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Dashboard data retrieved successfully",
+    "data": {
+        "user": {...},
+        "dashboard_route": "/dashboard/employee",
+        "permissions": [...],
+        "recent_activities": [...]
+    }
+}
+```
+
+## Product Management
+
+### Get All Products
+
+```http
+GET /api/products
+Authorization: Bearer {token}
 ```
 
 **Query Parameters:**
-- `period` (optional): daily, weekly, monthly, yearly (default: monthly)
+- `search` (optional): Search by product name or description
+- `category_id` (optional): Filter by category UUID
+- `business_id` (optional): Filter by business ID
+- `status` (optional): Filter by product status
+- `per_page` (optional): Items per page (default: 15, max: 100)
+- `page` (optional): Page number (default: 1)
 
-### Employee Management
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Products retrieved successfully",
+    "data": {
+        "current_page": 1,
+        "data": [
+            {
+                "id": "uuid-string",
+                "name_product": "Coffee Latte",
+                "deskripsi": "Premium coffee with steamed milk",
+                "price": 25000,
+                "stock": 50,
+                "category": {
+                    "id": "uuid-string",
+                    "name": "Beverages"
+                },
+                "status": {
+                    "id": "uuid-string",
+                    "name": "Active"
+                },
+                "business_id": 1,
+                "user_id": "creator-uuid",
+                "created_at": "2025-11-09T10:00:00Z"
+            }
+        ],
+        "per_page": 15,
+        "total": 100,
+        "last_page": 7
+    }
+}
+```
+
+### Get My Products
+
 ```http
-GET /api/dashboard/owner/employees
+GET /api/products/my-products
+Authorization: Bearer {token}
+```
+
+**Query Parameters:** Same as Get All Products
+
+**Success Response:** Same structure as Get All Products but filtered by authenticated user
+
+### Get Product Statistics
+
+```http
+GET /api/products/statistics
+Authorization: Bearer {token}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Product statistics retrieved successfully",
+    "data": {
+        "total_products": 100,
+        "active_products": 85,
+        "inactive_products": 15,
+        "out_of_stock": 5,
+        "low_stock": 12,
+        "total_value": 15000000,
+        "categories_breakdown": [...],
+        "monthly_added": 25
+    }
+}
+```
+
+### Get Products by Business
+
+```http
+GET /api/products/business/{businessId}
+Authorization: Bearer {token}
+```
+
+**Path Parameters:**
+- `businessId` (required): Business ID
+
+**Query Parameters:** Same as Get All Products
+
+**Success Response:** Same structure as Get All Products but filtered by business
+
+### Get Single Product
+
+```http
+GET /api/products/{uuid}
+Authorization: Bearer {token}
+```
+
+**Path Parameters:**
+- `uuid` (required): Product UUID
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Product retrieved successfully",
+    "data": {
+        "product": {
+            "id": "uuid-string",
+            "name_product": "Coffee Latte",
+            "deskripsi": "Premium coffee with steamed milk",
+            "price": 25000,
+            "stock": 50,
+            "category": {...},
+            "status": {...},
+            "business": {...},
+            "creator": {...},
+            "created_at": "2025-11-09T10:00:00Z",
+            "updated_at": "2025-11-09T10:00:00Z"
+        }
+    }
+}
+```
+
+### Create New Product
+
+```http
+POST /api/products
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Request Body:**
+```json
+{
+    "category_id": "uuid-string",
+    "status_id": "uuid-string",
+    "name_product": "New Coffee Product",
+    "deskripsi": "Delicious coffee description",
+    "price": 30000,
+    "stock": 100
+}
+```
+
+**Success Response (201):**
+```json
+{
+    "success": true,
+    "message": "Product created successfully",
+    "data": {
+        "product": {
+            "id": "new-uuid-string",
+            "name_product": "New Coffee Product",
+            "deskripsi": "Delicious coffee description",
+            "price": 30000,
+            "stock": 100,
+            "category_id": "uuid-string",
+            "status_id": "uuid-string",
+            "business_id": 1,
+            "user_id": "creator-uuid",
+            "created_at": "2025-11-09T11:00:00Z"
+        }
+    }
+}
+```
+
+### Update Product
+
+```http
+PUT /api/products/{uuid}
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Path Parameters:**
+- `uuid` (required): Product UUID
+
+**Request Body:** (all fields optional)
+```json
+{
+    "name_product": "Updated Product Name",
+    "deskripsi": "Updated description",
+    "price": 32000,
+    "stock": 75,
+    "category_id": "new-category-uuid",
+    "status_id": "new-status-uuid"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Product updated successfully",
+    "data": {
+        "product": {
+            "id": "uuid-string",
+            "name_product": "Updated Product Name",
+            "updated_at": "2025-11-09T11:30:00Z"
+        }
+    }
+}
+```
+
+### Delete Product
+
+```http
+DELETE /api/products/{uuid}
+Authorization: Bearer {token}
+```
+
+**Path Parameters:**
+- `uuid` (required): Product UUID
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Product deleted successfully"
+}
+```
+
+## Business Management
+
+### Get All Businesses (Public)
+
+```http
+GET /api/businesses-public
 ```
 
 **Query Parameters:**
-- `search` (optional): Search by name, email, placement, job_role
+- `search` (optional): Search by business name
+- `category_id` (optional): Filter by category ID
+- `status_id` (optional): Filter by status ID
+- `per_page` (optional): Items per page (default: 15)
+- `page` (optional): Page number (default: 1)
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Businesses retrieved successfully",
+    "data": {
+        "current_page": 1,
+        "data": [
+            {
+                "id": 1,
+                "name_business": "Warung Kopi Santai",
+                "description": "Cozy coffee shop with local atmosphere",
+                "category": {
+                    "id": "uuid-string",
+                    "name": "Food & Beverage"
+                },
+                "status": {
+                    "id": "uuid-string", 
+                    "name": "Active"
+                },
+                "start_date": "2023-01-15",
+                "location": "Jakarta",
+                "created_at": "2023-01-15T00:00:00Z"
+            }
+        ],
+        "per_page": 15,
+        "total": 50,
+        "last_page": 4
+    }
+}
+```
+
+### Get All Businesses (Protected)
+
+```http
+GET /api/businesses
+Authorization: Bearer {token}
+```
+
+**Query Parameters:** Same as public endpoint
+
+**Success Response:** Same structure as public endpoint but with additional sensitive data if authorized
+
+### Get My Businesses
+
+```http
+GET /api/businesses/my-businesses
+Authorization: Bearer {token}
+```
+
+**Query Parameters:** Same as Get All Businesses
+
+**Success Response:** Same structure but filtered by user's businesses
+
+### Get Business Statistics
+
+```http
+GET /api/businesses/statistics
+Authorization: Bearer {token}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Business statistics retrieved successfully",
+    "data": {
+        "total_businesses": 50,
+        "active_businesses": 45,
+        "inactive_businesses": 5,
+        "categories_breakdown": [
+            {
+                "category": "Food & Beverage",
+                "count": 25
+            },
+            {
+                "category": "Retail",
+                "count": 15
+            }
+        ],
+        "monthly_created": 8,
+        "total_revenue": 500000000
+    }
+}
+```
+
+### Get Businesses by Category
+
+```http
+GET /api/businesses/category/{categoryId}
+Authorization: Bearer {token}
+```
+
+**Path Parameters:**
+- `categoryId` (required): Category ID
+
+**Query Parameters:** Same as Get All Businesses
+
+**Success Response:** Same structure as Get All Businesses but filtered by category
+
+### Get Single Business
+
+```http
+GET /api/businesses/{id}
+Authorization: Bearer {token}
+```
+
+**Path Parameters:**
+- `id` (required): Business ID
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Business retrieved successfully",
+    "data": {
+        "business": {
+            "id": 1,
+            "name_business": "Warung Kopi Santai",
+            "description": "Cozy coffee shop with local atmosphere",
+            "category": {...},
+            "status": {...},
+            "start_date": "2023-01-15",
+            "location": "Jakarta",
+            "employees_count": 5,
+            "products_count": 20,
+            "monthly_revenue": 25000000,
+            "created_at": "2023-01-15T00:00:00Z",
+            "updated_at": "2025-11-09T10:00:00Z"
+        }
+    }
+}
+```
+
+### Create New Business
+
+```http
+POST /api/businesses
+Authorization: Bearer {admin_or_owner_token}
+Content-Type: application/json
+```
+
+**Required Roles:** Admin, Owner
+
+**Request Body:**
+```json
+{
+    "name_business": "New Coffee Shop",
+    "description": "Modern coffee shop with artisan coffee",
+    "category_id": "uuid-string",
+    "status_id": "uuid-string",
+    "start_date": "2025-11-09",
+    "location": "Bandung",
+    "contact_phone": "081234567890",
+    "contact_email": "info@newcoffeeshop.com"
+}
+```
+
+**Success Response (201):**
+```json
+{
+    "success": true,
+    "message": "Business created successfully",
+    "data": {
+        "business": {
+            "id": 2,
+            "name_business": "New Coffee Shop",
+            "description": "Modern coffee shop with artisan coffee",
+            "category_id": "uuid-string",
+            "status_id": "uuid-string",
+            "start_date": "2025-11-09",
+            "location": "Bandung",
+            "contact_phone": "081234567890",
+            "contact_email": "info@newcoffeeshop.com",
+            "created_at": "2025-11-09T11:00:00Z"
+        }
+    }
+}
+```
+
+### Update Business
+
+```http
+PUT /api/businesses/{id}
+Authorization: Bearer {admin_or_owner_token}
+Content-Type: application/json
+```
+
+**Required Roles:** Admin, Owner
+
+**Path Parameters:**
+- `id` (required): Business ID
+
+**Request Body:** (all fields optional)
+```json
+{
+    "name_business": "Updated Coffee Shop Name",
+    "description": "Updated description",
+    "location": "Jakarta Selatan",
+    "contact_phone": "081987654321"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Business updated successfully",
+    "data": {
+        "business": {
+            "id": 1,
+            "name_business": "Updated Coffee Shop Name",
+            "updated_at": "2025-11-09T11:30:00Z"
+        }
+    }
+}
+```
+
+### Delete Business
+
+```http
+DELETE /api/businesses/{id}
+Authorization: Bearer {admin_or_owner_token}
+```
+
+**Required Roles:** Admin, Owner
+
+**Path Parameters:**
+- `id` (required): Business ID
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Business deleted successfully"
+}
+```
+
+## User Management
+
+### Get All Users
+
+```http
+GET /api/users
+Authorization: Bearer {admin_or_owner_token}
+```
+
+**Required Roles:** Admin, Owner
+
+**Query Parameters:**
+- `search` (optional): Search by name, email, username
+- `role` (optional): Filter by account_role (admin, owner, employee)
+- `business_id` (optional): Filter by business ID
 - `placement` (optional): Filter by placement
 - `per_page` (optional): Items per page (default: 15)
+- `page` (optional): Page number (default: 1)
 
-### Expense Management
-```http
-GET /api/dashboard/owner/expenses
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Users retrieved successfully",
+    "data": {
+        "current_page": 1,
+        "data": [
+            {
+                "id": "uuid-string",
+                "name": "John Doe",
+                "email": "john@example.com",
+                "username": "johndoe",
+                "account_role": "employee",
+                "job_role": "Sales Representative",
+                "placement": "Jakarta Office",
+                "salary": 5000000,
+                "business_id": 1,
+                "business": {
+                    "id": 1,
+                    "name_business": "Warung Kopi Santai"
+                },
+                "created_at": "2025-01-01T00:00:00Z"
+            }
+        ],
+        "per_page": 15,
+        "total": 150,
+        "last_page": 10
+    }
+}
 ```
+
+### Get Single User
+
+```http
+GET /api/users/{uuid}
+Authorization: Bearer {admin_or_owner_token}
+```
+
+**Required Roles:** Admin, Owner
+
+**Path Parameters:**
+- `uuid` (required): User UUID
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "User retrieved successfully",
+    "data": {
+        "user": {
+            "id": "uuid-string",
+            "name": "John Doe",
+            "email": "john@example.com",
+            "username": "johndoe",
+            "account_role": "employee",
+            "phone": "1234567890",
+            "birth_of_date": "1990-01-15",
+            "birth_of_place": "Jakarta",
+            "gender": "male",
+            "start_date": "2025-01-01",
+            "job_role": "Sales Representative",
+            "placement": "Jakarta Office",
+            "salary": 5000000,
+            "business_id": 1,
+            "business": {...},
+            "created_at": "2025-01-01T00:00:00Z",
+            "updated_at": "2025-11-09T10:00:00Z"
+        }
+    }
+}
+```
+
+### Update User
+
+```http
+PUT /api/users/{uuid}
+Authorization: Bearer {admin_or_owner_token}
+Content-Type: application/json
+```
+
+**Required Roles:** Admin, Owner
+
+**Path Parameters:**
+- `uuid` (required): User UUID
+
+**Request Body:** (all fields optional)
+```json
+{
+    "name": "John Updated Doe",
+    "phone": "0987654321",
+    "job_role": "Senior Sales Representative",
+    "placement": "Jakarta Pusat Office",
+    "salary": 6000000,
+    "business_id": 2
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "User updated successfully",
+    "data": {
+        "user": {
+            "id": "uuid-string",
+            "name": "John Updated Doe",
+            "job_role": "Senior Sales Representative",
+            "salary": 6000000,
+            "updated_at": "2025-11-09T11:30:00Z"
+        }
+    }
+}
+```
+
+### Delete User
+
+```http
+DELETE /api/users/{uuid}
+Authorization: Bearer {admin_or_owner_token}
+```
+
+**Required Roles:** Admin, Owner
+
+**Path Parameters:**
+- `uuid` (required): User UUID
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "User deleted successfully"
+}
+```
+
+### Get Users by Business
+
+```http
+GET /api/users/business/{businessId}
+Authorization: Bearer {admin_or_owner_token}
+```
+
+**Required Roles:** Admin, Owner
+
+**Path Parameters:**
+- `businessId` (required): Business ID
+
+**Query Parameters:** Same as Get All Users
+
+**Success Response:** Same structure as Get All Users but filtered by business
+
+### Get Users by Role
+
+```http
+GET /api/users/role/{role}
+Authorization: Bearer {admin_or_owner_token}
+```
+
+**Required Roles:** Admin, Owner
+
+**Path Parameters:**
+- `role` (required): Role name (admin, owner, employee)
+
+**Query Parameters:** Same as Get All Users
+
+**Success Response:** Same structure as Get All Users but filtered by role
+
+### Assign User to Business
+
+```http
+POST /api/users/assign-to-business
+Authorization: Bearer {admin_or_owner_token}
+Content-Type: application/json
+```
+
+**Required Roles:** Admin, Owner
+
+**Request Body:**
+```json
+{
+    "user_id": "uuid-string",
+    "business_id": 1
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "User assigned to business successfully",
+    "data": {
+        "user": {
+            "id": "uuid-string",
+            "name": "John Doe",
+            "business_id": 1,
+            "updated_at": "2025-11-09T12:00:00Z"
+        }
+    }
+}
+```
+
+## Expenditure Management
+
+### Get Expenditures
+
+```http
+GET /api/dashboard/expenditures
+Authorization: Bearer {admin_or_owner_token}
+```
+
+**Required Roles:** Admin, Owner
 
 **Query Parameters:**
 - `status` (optional): pending, approved, rejected
 - `employee_id` (optional): Filter by employee UUID
-- `start_date` (optional): Filter from date
-- `end_date` (optional): Filter to date
+- `start_date` (optional): Filter from date (Y-m-d format)
+- `end_date` (optional): Filter to date (Y-m-d format)
+- `category` (optional): Filter by expense category
 - `per_page` (optional): Items per page (default: 15)
 
-#### Approve/Reject Expense
-```http
-POST /api/dashboard/owner/expenses/{uuid}/approve
-```
-
-**Request Body:**
+**Success Response (200):**
 ```json
 {
-    "action": "approve", // or "reject"
-    "notes": "Approved for business travel expenses"
-}
-```
-
-### Financial Reports
-```http
-GET /api/dashboard/owner/financial-reports
-```
-
-**Query Parameters:**
-- `year` (optional): Year for report (default: current year)
-- `month` (optional): Specific month (1-12)
-
----
-
-## Admin Dashboard
-
-### Admin Dashboard Index
-```http
-GET /api/dashboard/admin
-```
-
-### User Management
-```http
-GET /api/dashboard/admin/users
-```
-
-**Query Parameters:**
-- `role` (optional): Filter by account_role
-- `search` (optional): Search by name, email, username
-- `per_page` (optional): Items per page (default: 15)
-
-### Expenditure Management
-```http
-GET /api/dashboard/admin/expenditures
-```
-
-**Query Parameters:**
-- `status` (optional): pending, approved, rejected
-- `start_date` (optional): Filter from date
-- `end_date` (optional): Filter to date
-- `per_page` (optional): Items per page (default: 15)
-
-#### Approve/Reject Expenditure
-```http
-POST /api/dashboard/admin/expenditures/{uuid}/approve
-```
-
-**Request Body:**
-```json
-{
-    "action": "approve", // or "reject"
-    "notes": "Administrative approval"
-}
-```
-
-### System Reports
-```http
-GET /api/dashboard/admin/reports
-```
-
-**Query Parameters:**
-- `period` (optional): daily, weekly, monthly, yearly (default: monthly)
-
----
-
-## Error Responses
-
-### Authentication Error
-```json
-{
-    "status": "error",
-    "message": "Unauthorized access. Please login first."
-}
-```
-
-### Authorization Error
-```json
-{
-    "status": "error",
-    "message": "Access denied. Insufficient permissions.",
-    "required_roles": ["employee"],
-    "user_role": "admin"
-}
-```
-
-### Validation Error
-```json
-{
-    "status": "error",
-    "message": "Validation failed",
-    "errors": {
-        "name_product": ["The name product field is required."],
-        "price": ["The price must be a number."]
+    "success": true,
+    "message": "Expenditures retrieved successfully",
+    "data": {
+        "current_page": 1,
+        "data": [
+            {
+                "id": "uuid-string",
+                "category": "Transportation",
+                "description": "Taxi fare for client meeting",
+                "amount": 50000,
+                "status": "pending",
+                "receipt_image": "storage/receipts/image.jpg",
+                "employee": {
+                    "id": "uuid-string",
+                    "name": "John Doe"
+                },
+                "submitted_at": "2025-11-09T10:00:00Z",
+                "processed_at": null,
+                "processed_by": null
+            }
+        ],
+        "per_page": 15,
+        "total": 50
     }
 }
 ```
 
-### Not Found Error
+### Approve/Reject Expenditure
+
+```http
+POST /api/dashboard/expenditures/{uuid}/approve
+Authorization: Bearer {admin_or_owner_token}
+Content-Type: application/json
+```
+
+**Required Roles:** Admin, Owner
+
+**Path Parameters:**
+- `uuid` (required): Expenditure UUID
+
+**Request Body:**
 ```json
 {
-    "status": "error",
-    "message": "Product not found or unauthorized"
+    "action": "approve",
+    "notes": "Approved for legitimate business expense"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Expenditure approved successfully",
+    "data": {
+        "expenditure": {
+            "id": "uuid-string",
+            "status": "approved",
+            "notes": "Approved for legitimate business expense",
+            "processed_at": "2025-11-09T12:00:00Z",
+            "processed_by": "admin-uuid"
+        }
+    }
+}
+```
+
+## Reports
+
+### Generate Reports
+
+```http
+GET /api/dashboard/reports
+Authorization: Bearer {admin_or_owner_token}
+```
+
+**Required Roles:** Admin, Owner
+
+**Query Parameters:**
+- `period` (optional): daily, weekly, monthly, yearly (default: monthly)
+- `start_date` (optional): Custom start date (Y-m-d format)
+- `end_date` (optional): Custom end date (Y-m-d format)
+- `type` (optional): financial, users, products, businesses
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Reports generated successfully",
+    "data": {
+        "period": "monthly",
+        "date_range": {
+            "start": "2025-11-01",
+            "end": "2025-11-30"
+        },
+        "financial_summary": {
+            "total_revenue": 50000000,
+            "total_expenses": 15000000,
+            "net_profit": 35000000,
+            "profit_margin": 70
+        },
+        "business_metrics": {
+            "active_businesses": 45,
+            "new_businesses": 5,
+            "total_products": 500,
+            "total_transactions": 2500
+        },
+        "user_metrics": {
+            "total_users": 150,
+            "new_users": 25,
+            "active_users": 140
+        }
+    }
+}
+```
+
+## HTTP Status Codes
+
+The API uses standard HTTP status codes to indicate success or failure:
+
+- **200 OK**: Request successful
+- **201 Created**: Resource created successfully  
+- **400 Bad Request**: Invalid request data
+- **401 Unauthorized**: Authentication required or invalid token
+- **403 Forbidden**: Access denied due to insufficient permissions
+- **404 Not Found**: Resource not found
+- **422 Unprocessable Entity**: Validation errors
+- **500 Internal Server Error**: Server error
+
+---
+
+## Error Response Examples
+
+### Authentication Errors (401)
+
+**Missing Token:**
+```json
+{
+    "success": false,
+    "message": "Unauthenticated",
+    "error": "Token not provided"
+}
+```
+
+**Invalid Token:**
+```json
+{
+    "success": false,
+    "message": "Unauthenticated", 
+    "error": "Token is invalid or expired"
+}
+```
+
+**Invalid Credentials:**
+```json
+{
+    "success": false,
+    "message": "Invalid credentials",
+    "error": "The provided username/email and password do not match our records"
+}
+```
+
+### Authorization Errors (403)
+
+**Insufficient Permissions:**
+```json
+{
+    "success": false,
+    "message": "Access denied",
+    "error": "Insufficient permissions for this action",
+    "required_roles": ["admin", "owner"],
+    "user_role": "employee"
+}
+```
+
+**Role Hierarchy Violation:**
+```json
+{
+    "success": false,
+    "message": "Owner can only create: employee",
+    "error": "ROLE_HIERARCHY_VIOLATION"
+}
+```
+
+### Validation Errors (422)
+
+**Required Fields Missing:**
+```json
+{
+    "success": false,
+    "message": "Validation failed",
+    "errors": {
+        "name": ["The name field is required."],
+        "email": ["The email field is required."],
+        "password": ["The password must be at least 8 characters."]
+    }
+}
+```
+
+**Duplicate Values:**
+```json
+{
+    "success": false,
+    "message": "Validation failed",
+    "errors": {
+        "email": ["The email has already been taken."],
+        "username": ["The username has already been taken."]
+    }
+}
+```
+
+**Invalid Format:**
+```json
+{
+    "success": false,
+    "message": "Validation failed",
+    "errors": {
+        "email": ["The email must be a valid email address."],
+        "price": ["The price must be a number."],
+        "start_date": ["The start date must be a valid date."]
+    }
+}
+```
+
+### Not Found Errors (404)
+
+**Resource Not Found:**
+```json
+{
+    "success": false,
+    "message": "Resource not found",
+    "error": "The requested user/product/business was not found or you don't have access"
+}
+```
+
+**Route Not Found:**
+```json
+{
+    "success": false,
+    "message": "Route not found",
+    "error": "The specified route does not exist or you don't have access"
+}
+```
+
+### Server Errors (500)
+
+**Internal Server Error:**
+```json
+{
+    "success": false,
+    "message": "Internal server error",
+    "error": "An unexpected error occurred. Please try again later."
 }
 ```
 
@@ -456,26 +1539,106 @@ GET /api/dashboard/admin/businesses/{businessId}/employees
 
 ---
 
-## Installation Notes
+## API Endpoints Summary
 
-1. **Middleware Registration**: The custom `CheckAccountRole` middleware is registered as `account.role` in `app/Http/Kernel.php`
+### Authentication Endpoints
+| Method | Endpoint | Access | Description |
+|--------|----------|---------|-------------|
+| POST | `/api/auth/login` | Public | User login |
+| POST | `/api/auth/register` | Public | Admin registration |
+| POST | `/api/auth/forgot-password` | Public | Request password reset |
+| POST | `/api/auth/reset-password` | Public | Reset password |
 
-2. **Database Requirements**: 
-   - Existing tables: users, products, vouchers, pembayarans, business
-   - New tables: expenditures, users.business_id (migrations provided)
+### Role-Based User Creation
+| Method | Endpoint | Required Role | Description |
+|--------|----------|---------------|-------------|
+| POST | `/api/admin/create-owner` | Admin | Admin creates Owner |
+| POST | `/api/owner/create-employee` | Owner | Owner creates Employee |
 
-3. **Model Relationships**: Updated User model with relationships to products, expenditures, vouchers, and business
+### Dashboard Endpoints  
+| Method | Endpoint | Required Role | Description |
+|--------|----------|---------------|-------------|
+| GET | `/api/dashboard` | Any | Role-based dashboard redirect |
+| GET | `/api/dashboard/admin` | Admin | Admin dashboard data |
+| GET | `/api/dashboard/owner` | Owner | Owner dashboard data |
+| GET | `/api/dashboard/employee` | Employee | Employee dashboard data |
 
-4. **Authentication**: Uses Laravel Sanctum for API token authentication
+### User Management (Admin/Owner Only)
+| Method | Endpoint | Required Role | Description |
+|--------|----------|---------------|-------------|
+| GET | `/api/users` | Admin, Owner | Get all users |
+| GET | `/api/users/{uuid}` | Admin, Owner | Get single user |
+| PUT | `/api/users/{uuid}` | Admin, Owner | Update user |
+| DELETE | `/api/users/{uuid}` | Admin, Owner | Delete user |
 
-5. **Business Integration**: Users can now be assigned to businesses, and employee dashboard shows business information
+### Product Management
+| Method | Endpoint | Access | Description |
+|--------|----------|---------|-------------|
+| GET | `/api/products` | Authenticated | Get all products |
+| POST | `/api/products` | Authenticated | Create product |
+| PUT | `/api/products/{uuid}` | Authenticated | Update product |
+| DELETE | `/api/products/{uuid}` | Authenticated | Delete product |
 
-## Migration Files
+### Business Management
+| Method | Endpoint | Access | Description |
+|--------|----------|---------|-------------|
+| GET | `/api/businesses-public` | Public | Get all businesses (public) |
+| GET | `/api/businesses` | Authenticated | Get all businesses |
+| POST | `/api/businesses` | Admin, Owner | Create business |
+| PUT | `/api/businesses/{id}` | Admin, Owner | Update business |
+| DELETE | `/api/businesses/{id}` | Admin, Owner | Delete business |
 
-Run the following migrations:
-```bash
-php artisan migrate --path=database/migrations/2025_11_08_100000_create_expenditures_table.php
-php artisan migrate --path=database/migrations/2025_11_08_100001_businesss_id_to_users_table.php
+## Role-Based Access Summary
+
+| Resource | Admin | Owner | Employee | Public |
+|----------|-------|-------|----------|--------|
+| **User Creation** | Owner only | Employee only | ❌ | ❌ |
+| **Dashboard** | ✅ | ✅ | ✅ | ❌ |
+| **User Management** | ✅ | ✅ | ❌ | ❌ |
+| **Business Management** | ✅ | ✅ | Read only | Read only |
+| **Product Management** | ✅ | ✅ | ✅ | ❌ |
+
+## Installation & Setup
+
+### Prerequisites
+- PHP 8.1+
+- Laravel 11.x
+- MySQL/PostgreSQL
+- Composer
+
+### Setup Steps
+
+1. **Install Dependencies**
+   ```bash
+   composer install && npm install
+   ```
+
+2. **Environment & Database**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   php artisan migrate --seed
+   ```
+
+3. **Start Server**
+   ```bash
+   php artisan serve
+   ```
+
+### Middleware Registration
+
+Ensure `CheckAccountRole` middleware is registered as `role` in `app/Http/Kernel.php`:
+
+```php
+protected $middlewareAliases = [
+    'role' => \App\Http\Middleware\CheckAccountRole::class,
+];
 ```
 
-This API structure provides a comprehensive role-based dashboard system that scales with your business needs and maintains clear separation of concerns for each user role.
+### Default Test Credentials
+
+- **Admin**: `admin@system.com` / `admin123`
+- **Owner**: `owner@example.com` / `owner123`  
+- **Employee**: `employee@example.com` / `employee123`
+
+This comprehensive API provides complete role-based access control with hierarchical user creation, ensuring proper security and separation of concerns across all user levels.
