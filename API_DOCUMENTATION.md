@@ -2,11 +2,20 @@
 
 ## Overview
 
-This API provides role-based dashboard functionality for the Pioneer Management system. The system supports three main roles:
+This API provides role-based dashboard functionality for the Pioneer Management system. The system supports three main roles with strict hierarchy enforcement:
 
-- **Admin**: Full system access, user management, expense approval
-- **Owner**: Business analytics, employee management, financial reports
-- **Employee**: Personal dashboard, product management, history tracking
+- **Admin**: Full system access, user management (can create owners), expense approval
+- **Owner**: Business analytics, employee management (can create employees), financial reports
+- **Employee**: Personal dashboard, product management, history tracking (cannot create users)
+
+## Role-Based User Creation Hierarchy
+
+The system implements a strict role hierarchy where:
+- **Admin** → Can create **Owner** accounts only
+- **Owner** → Can create **Employee** accounts only  
+- **Employee** → Cannot create any user accounts
+
+For complete role hierarchy documentation, see [ROLE_HIERARCHY_DOCUMENTATION.md](./ROLE_HIERARCHY_DOCUMENTATION.md)
 
 ## Authentication
 

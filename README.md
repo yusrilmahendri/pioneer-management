@@ -7,60 +7,176 @@
 <a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
 </p>
 
-## About Laravel
+# Pioneer Management Dashboard
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Overview
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+Pioneer Management is a comprehensive business management system built with Laravel 11.x, implementing clean architecture principles and role-based access control. The system provides hierarchical user management, business analytics, and operational dashboards for different user roles.
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Key Features
 
-## Learning Laravel
+- **Role-Based Access Control**: Strict hierarchy enforcement (Admin → Owner → Employee)
+- **Clean Architecture**: Repository-Usecase-Delivery pattern implementation
+- **JWT Authentication**: Secure token-based authentication with Laravel Sanctum
+- **Business Management**: Multi-business support with employee assignment
+- **Dashboard Analytics**: Role-specific dashboards and reporting
+- **User Management**: Hierarchical user creation with proper validation
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Architecture
 
-You may also try the [Laravel Bootcamp](https://bootcamp.laravel.com), where you will be guided through building a modern Laravel application from scratch.
+This application follows Clean Architecture principles with three distinct layers:
 
-If you don't feel like reading, [Laracasts](https://laracasts.com) can help. Laracasts contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+- **Repository Layer**: Data access and persistence
+- **Usecase Layer**: Business logic and domain rules
+- **Delivery Layer**: HTTP request handling and response formatting
 
-## Laravel Sponsors
+## Role Hierarchy System
 
-We would like to extend our thanks to the following sponsors for funding Laravel development. If you are interested in becoming a sponsor, please visit the [Laravel Partners program](https://partners.laravel.com).
+The system implements a strict role-based hierarchy:
 
-### Premium Partners
+```
+Admin (System Level)
+  └── Can create Owner accounts
+  
+Owner (Business Level)  
+  └── Can create Employee accounts
+  
+Employee (Operational Level)
+  └── Cannot create user accounts
+```
 
-- **[Vehikl](https://vehikl.com/)**
-- **[Tighten Co.](https://tighten.co)**
-- **[WebReinvent](https://webreinvent.com/)**
-- **[Kirschbaum Development Group](https://kirschbaumdevelopment.com)**
-- **[64 Robots](https://64robots.com)**
-- **[Curotec](https://www.curotec.com/services/technologies/laravel/)**
-- **[Cyber-Duck](https://cyber-duck.co.uk)**
-- **[DevSquad](https://devsquad.com/hire-laravel-developers)**
-- **[Jump24](https://jump24.co.uk)**
-- **[Redberry](https://redberry.international/laravel/)**
-- **[Active Logic](https://activelogic.com)**
-- **[byte5](https://byte5.de)**
-- **[OP.GG](https://op.gg)**
+## Documentation
+
+Complete project documentation is available in the following files:
+
+- **[API Documentation](./API_DOCUMENTATION.md)**: Complete API endpoints and usage
+- **[Role Hierarchy Documentation](./ROLE_HIERARCHY_DOCUMENTATION.md)**: Detailed role-based user creation system
+- **[Clean Architecture](./CLEAN_ARCHITECTURE.md)**: Architecture implementation details
+- **[Migration Status](./MIGRATION_STATUS.md)**: Database migration tracking
+
+## Quick Start
+
+### Installation
+
+1. **Clone the repository**
+   ```bash
+   git clone <repository-url>
+   cd pioneer-management
+   ```
+
+2. **Install dependencies**
+   ```bash
+   composer install
+   npm install
+   ```
+
+3. **Environment setup**
+   ```bash
+   cp .env.example .env
+   php artisan key:generate
+   ```
+
+4. **Database setup**
+   ```bash
+   php artisan migrate
+   php artisan db:seed
+   ```
+
+5. **Run the application**
+   ```bash
+   php artisan serve
+   ```
+
+### Default Admin Account
+
+After running migrations and seeders, use these credentials:
+- **Email**: `admin@system.com`
+- **Password**: `admin123`
+- **Role**: `admin`
+
+## API Usage
+
+### Authentication
+
+All API endpoints require authentication except `/api/auth/login` and `/api/auth/register`.
+
+```bash
+# Login
+POST /api/auth/login
+{
+    "username_or_email": "admin@system.com",
+    "password": "admin123"
+}
+
+# Use returned token in subsequent requests
+Authorization: Bearer {token}
+```
+
+### Role-Based User Creation
+
+```bash
+# Admin creates Owner
+POST /api/admin/users/create-owner
+Authorization: Bearer {admin_token}
+
+# Owner creates Employee  
+POST /api/owner/users/create-employee
+Authorization: Bearer {owner_token}
+```
+
+## Testing
+
+```bash
+# Run all tests
+php artisan test
+
+# Run specific test suite
+php artisan test --testsuite=Feature
+php artisan test --testsuite=Unit
+```
+
+## Project Structure
+
+```
+app/
+├── Delivery/Http/          # HTTP layer (Controllers, Requests, Middleware)
+├── Repository/             # Data access layer
+├── Usecase/               # Business logic layer
+└── Models/                # Eloquent models
+
+database/
+├── migrations/            # Database schema migrations
+├── seeders/              # Database seeders
+└── factories/            # Model factories
+
+routes/
+├── api.php               # API routes with role-based protection
+└── web.php               # Web routes
+```
+
+## Security Features
+
+- **Role-Based Access Control**: Hierarchical user management
+- **JWT Authentication**: Secure token-based authentication
+- **Input Validation**: Comprehensive request validation
+- **Route Protection**: Middleware-based access control
+- **Password Security**: Bcrypt hashing and reset functionality
 
 ## Contributing
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+1. Fork the repository
+2. Create a feature branch (`git checkout -b feature/amazing-feature`)
+3. Commit your changes (`git commit -m 'Add amazing feature'`)
+4. Push to the branch (`git push origin feature/amazing-feature`)
+5. Open a Pull Request
 
-## Code of Conduct
+## Support
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
-
-## Security Vulnerabilities
-
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+For support and questions:
+- Review the [API Documentation](./API_DOCUMENTATION.md)
+- Check [Role Hierarchy Documentation](./ROLE_HIERARCHY_DOCUMENTATION.md)
+- Submit issues via GitHub Issues
 
 ## License
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+This project is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
