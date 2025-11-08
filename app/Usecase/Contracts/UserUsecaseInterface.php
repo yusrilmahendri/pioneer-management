@@ -57,6 +57,16 @@ interface UserUsecaseInterface
     public function registerUser(array $payload): array;
 
     /**
+     * Send forgot password token
+     */
+    public function forgotPassword(array $data): array;
+
+    /**
+     * Reset password using token
+     */
+    public function resetPassword(array $data): array;
+
+    /**
      * Assign employee to business (new clean architecture method)
      */
     public function assignEmployeeToBusiness(array $data): array;

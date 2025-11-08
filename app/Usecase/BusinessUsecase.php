@@ -3,11 +3,12 @@
 namespace App\Usecase;
 
 use App\Repository\BusinessRepositoryInterface;
+use App\Usecase\Contracts\BusinessUsecaseInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Validator;
 
-class BusinessUsecase
+class BusinessUsecase implements BusinessUsecaseInterface
 {
     protected BusinessRepositoryInterface $businessRepository;
 

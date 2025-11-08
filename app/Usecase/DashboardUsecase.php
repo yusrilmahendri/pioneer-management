@@ -11,8 +11,9 @@ use Illuminate\Support\Facades\DB;
 use App\Models\Pembayaran;
 use App\Models\Voucher;
 use App\Models\Expenditure;
+use App\Usecase\Contracts\DashboardUsecaseInterface;
 
-class DashboardUsecase
+class DashboardUsecase implements DashboardUsecaseInterface
 {
     protected UserRepositoryInterface $userRepository;
     protected ProductRepositoryInterface $productRepository;

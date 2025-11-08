@@ -10,6 +10,8 @@ use App\Delivery\Http\Controllers\DashboardController;
 // Authentication routes (public)
 Route::post('/auth/login', [UserController::class, 'login']);
 Route::post('/auth/register', [UserController::class, 'register']);
+Route::post('/auth/forgot-password', [UserController::class, 'forgotPassword']);
+Route::post('/auth/reset-password', [UserController::class, 'resetPassword']);
 
 // Public routes
 Route::get('/businesses-public', [BusinessController::class, 'index']); // Public access to businesses list

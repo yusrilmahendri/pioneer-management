@@ -6,6 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Usecase\Contracts\UserUsecaseInterface;
 use App\Delivery\Http\Requests\CreateUserRequest;
 use App\Delivery\Http\Requests\LoginRequest;
+use App\Delivery\Http\Requests\ForgotPasswordRequest;
+use App\Delivery\Http\Requests\ResetPasswordRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -163,6 +165,50 @@ class UserController extends Controller
             return response()->json([
                 'status' => 'error',
                 'message' => 'An error occurred during registration',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Forgot password
+     */
+    public function forgotPassword(ForgotPasswordRequest $request): JsonResponse
+    {
+        try {
+            $result = $this->userUsecase->forgotPassword($request->validated());
+            
+            if ($result['status'] === 'error') {
+                return response()->json($result, 422);
+            }
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while processing forgot password request',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Reset password
+     */
+    public function resetPassword(ResetPasswordRequest $request): JsonResponse
+    {
+        try {
+            $result = $this->userUsecase->resetPassword($request->validated());
+            
+            if ($result['status'] === 'error') {
+                return response()->json($result, 400);
+            }
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred while resetting password',
                 'error' => $e->getMessage()
             ], 500);
         }

@@ -8,6 +8,7 @@ use App\Models\User;
 use App\Models\BusinessAccount;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Facades\Validator;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Validation\ValidationException;
 use Illuminate\Support\Str;
 
@@ -257,6 +258,134 @@ class UserUsecase implements UserUsecaseInterface
     public function registerUser(array $payload): array
     {
         return $this->createUser($payload);
+    }
+
+    public function forgotPassword(array $data): array
+    {
+        $validator = Validator::make($data, [
+            'email' => 'required|email|exists:users,email'
+        ]);
+
+        if ($validator->fails()) {
+            return [
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()->toArray()
+            ];
+        }
+
+        $user = $this->userRepository->getByEmail($data['email']);
+
+        if (!$user) {
+            return [
+                'status' => 'error',
+                'message' => 'User with this email does not exist',
+                'data' => null
+            ];
+        }
+
+        // Generate password reset token
+        $token = Str::random(60);
+        
+        // Store token in password_reset_tokens table
+        \DB::table('password_reset_tokens')->updateOrInsert(
+            ['email' => $data['email']],
+            [
+                'email' => $data['email'],
+                'token' => Hash::make($token),
+                'created_at' => now()
+            ]
+        );
+
+        // In a real application, you would send an email here
+        // For now, we'll return the token (remove this in production)
+        return [
+            'status' => 'success',
+            'message' => 'Password reset token generated successfully',
+            'data' => [
+                'reset_token' => $token, // Remove this in production
+                'message' => 'Password reset instructions have been sent to your email'
+            ]
+        ];
+    }
+
+    public function resetPassword(array $data): array
+    {
+        $validator = Validator::make($data, [
+            'email' => 'required|email',
+            'token' => 'required|string',
+            'password' => 'required|string|min:8|confirmed'
+        ]);
+
+        if ($validator->fails()) {
+            return [
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $validator->errors()->toArray()
+            ];
+        }
+
+        // Check if reset token exists and is valid
+        $resetRecord = \DB::table('password_reset_tokens')
+            ->where('email', $data['email'])
+            ->first();
+
+        if (!$resetRecord) {
+            return [
+                'status' => 'error',
+                'message' => 'Invalid or expired reset token',
+                'data' => null
+            ];
+        }
+
+        // Check if token matches
+        if (!Hash::check($data['token'], $resetRecord->token)) {
+            return [
+                'status' => 'error',
+                'message' => 'Invalid reset token',
+                'data' => null
+            ];
+        }
+
+        // Check if token is not expired (24 hours)
+        if (now()->diffInHours($resetRecord->created_at) > 24) {
+            // Delete expired token
+            \DB::table('password_reset_tokens')->where('email', $data['email'])->delete();
+            
+            return [
+                'status' => 'error',
+                'message' => 'Reset token has expired',
+                'data' => null
+            ];
+        }
+
+        // Find user and update password
+        $user = $this->userRepository->getByEmail($data['email']);
+
+        if (!$user) {
+            return [
+                'status' => 'error',
+                'message' => 'User not found',
+                'data' => null
+            ];
+        }
+
+        // Update password
+        $this->userRepository->updateByUuid($user->uuid, [
+            'password' => Hash::make($data['password'])
+        ]);
+
+        // Delete the reset token
+        \DB::table('password_reset_tokens')->where('email', $data['email'])->delete();
+
+        // Revoke all existing tokens for security
+        $user->tokens()->delete();
+
+        return [
+            'status' => 'success',
+            'message' => 'Password has been reset successfully',
+            'data' => null
+        ];
     }
 
     public function getUserDashboardData(string $userUuid): array

@@ -17,7 +17,9 @@ use App\Usecase\Contracts\UserUsecaseInterface;
 use App\Usecase\UserUsecase;
 use App\Usecase\Contracts\ProductUsecaseInterface;
 use App\Usecase\ProductUsecase;
+use App\Usecase\Contracts\BusinessUsecaseInterface;
 use App\Usecase\BusinessUsecase;
+use App\Usecase\Contracts\DashboardUsecaseInterface;
 use App\Usecase\DashboardUsecase;
 
 class RepositoryServiceProvider extends ServiceProvider
@@ -35,8 +37,8 @@ class RepositoryServiceProvider extends ServiceProvider
         // Usecase bindings
         $this->app->bind(UserUsecaseInterface::class, UserUsecase::class);
         $this->app->bind(ProductUsecaseInterface::class, ProductUsecase::class);
-        $this->app->singleton(BusinessUsecase::class);
-        $this->app->singleton(DashboardUsecase::class);
+        $this->app->bind(BusinessUsecaseInterface::class, BusinessUsecase::class);
+        $this->app->bind(DashboardUsecaseInterface::class, DashboardUsecase::class);
 
         // Add more repository and usecase bindings here as you create them
     }
