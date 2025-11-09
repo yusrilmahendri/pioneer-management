@@ -40,6 +40,41 @@ class Business extends Model
     }
 
     /**
+     * Get the owner of this business (primary user with limited fields, no pivot data)
+     */
+    public function owner()
+    {
+        return $this->belongsToMany(User::class, 'business_account', 'id_business', 'id_user')
+            ->select(['users.id', 'users.name', 'business_account.id_business', 'business_account.id_user'])
+            ->limit(1);
+    }
+
+    /**
+     * Append formatted owner to JSON
+     */
+    protected $appends = [];
+
+    /**
+     * Custom serialization for owner relationship
+     */
+    public function toArray()
+    {
+        $array = parent::toArray();
+        
+        // If owner relationship is loaded, clean it up and make id visible
+        if ($this->relationLoaded('owner')) {
+            $array['owner'] = $this->owner->map(function ($owner) {
+                return [
+                    'id' => $owner->getAttributeValue('id'), // Get raw id value, bypassing hidden
+                    'name' => $owner->name,
+                ];
+            })->values()->all();
+        }
+        
+        return $array;
+    }
+
+    /**
      * Get products belonging to this business
      */
     public function products()

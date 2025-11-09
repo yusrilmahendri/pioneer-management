@@ -21,7 +21,11 @@ class BusinessRepository implements BusinessRepositoryInterface
      */
     public function getAll(array $filters = [], bool $paginate = false, int $perPage = 10)
     {
-        $query = $this->model->with(['businessCategory', 'businessStatus']);
+        $query = $this->model->with([
+            'businessCategory:id,business_category',
+            'businessStatus:id,business_status',
+            'owner'
+        ]);
 
         // Apply search filter
         if (!empty($filters['search'])) {
@@ -39,9 +43,9 @@ class BusinessRepository implements BusinessRepositoryInterface
         }
 
         // Apply user filter - use relationship
-        if (!empty($filters['user_id'])) {
+        if (!empty($filters['id_user'])) {
             $query->whereHas('users', function($q) use ($filters) {
-                $q->where('users.id', $filters['user_id']);
+                $q->where('users.id', $filters['id_user']);
             });
         }
 
@@ -62,8 +66,11 @@ class BusinessRepository implements BusinessRepositoryInterface
      */
     public function findById(string $id): ?Business
     {
-        return $this->model->with(['businessCategory', 'businessStatus'])
-            ->find($id);
+        return $this->model->with([
+            'businessCategory:id,business_category',
+            'businessStatus:id,business_status',
+            'owner'
+        ])->find($id);
     }
 
     /**
@@ -86,7 +93,10 @@ class BusinessRepository implements BusinessRepositoryInterface
         }
 
         $business->update($data);
-        return $business->fresh(['businessCategory', 'businessStatus']);
+        return $business->fresh([
+            'businessCategory:id,business_category',
+            'businessStatus:id,business_status'
+        ]);
     }
 
     /**
@@ -108,8 +118,11 @@ class BusinessRepository implements BusinessRepositoryInterface
      */
     public function getByUserId(int $userId)
     {
-        return $this->model->with(['businessCategory', 'businessStatus'])
-            ->whereHas('users', function($query) use ($userId) {
+        return $this->model->with([
+            'businessCategory:id,business_category',
+            'businessStatus:id,business_status',
+            'owner'
+        ])->whereHas('users', function($query) use ($userId) {
                 $query->where('users.id', $userId);
             })
             ->orderBy('created_at', 'desc')
@@ -121,8 +134,11 @@ class BusinessRepository implements BusinessRepositoryInterface
      */
     public function getByCategory(int $categoryId)
     {
-        return $this->model->with(['businessCategory', 'businessStatus'])
-            ->where('id_business_category', $categoryId)
+        return $this->model->with([
+            'businessCategory:id,business_category',
+            'businessStatus:id,business_status',
+            'owner'
+        ])->where('id_business_category', $categoryId)
             ->orderBy('created_at', 'desc')
             ->get();
     }
@@ -132,8 +148,10 @@ class BusinessRepository implements BusinessRepositoryInterface
      */
     public function getByStatus(int $statusId)
     {
-        return $this->model->with(['businessCategory', 'businessStatus'])
-            ->where('id_business_status', $statusId)
+        return $this->model->with([
+            'businessCategory:id,business_category',
+            'businessStatus:id,business_status'
+        ])->where('id_business_status', $statusId)
             ->orderBy('created_at', 'desc')
             ->get();
     }

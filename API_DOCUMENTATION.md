@@ -1,5 +1,35 @@
 # Pioneer Management Dashboard API Documentation
 
+
+
+## Business Model
+
+The `Business` model represents a business entity in the system. It is defined in `app/Models/Business.php` and uses the `business` table. The model includes all columns from the table (guarded = []).
+
+### Relationships
+
+- **businessCategory()**: Belongs to a `BusinessCategory` via `id_business_category` foreign key.
+- **businessStatus()**: Belongs to a `BusinessStatus` via `id_business_status` foreign key.
+- **users()**: Many-to-many relationship with `User` via the `business_account` pivot table (`id_business`, `id_user`).
+- **owner()**: Many-to-many relationship with `User` via `business_account`, returns the primary owner (limited fields, no pivot data, limit 1).
+- **products()**: Has many `Product` via `id_business` foreign key.
+
+#### Serialization
+When the `owner` relationship is loaded, the model customizes the JSON output to include the owner's `id` and `name`.
+
+---
+## Business Category Model
+
+The `BusinessCategory` model represents the business categories in the system. It is defined in `app/Models/BusinessCategory.php` and uses the `business_category` table. The model includes the following fields:
+
+- `business_category` (string): The name of the business category.
+- `created_by` (integer, nullable): The user ID who created the category.
+- `updated_by` (integer, nullable): The user ID who last updated the category.
+
+### Relationships
+- **businesses()**: Returns all businesses that belong to this category. (hasMany relationship to `Business` model via `id_business_category` foreign key)
+
+---
 ## Overview
 
 This API provides role-based dashboard functionality for the Pioneer Management system. The system supports three main roles with strict hierarchy enforcement:
@@ -996,6 +1026,7 @@ Content-Type: application/json
     "business": "New Coffee Shop",
     "id_business_category": 1,
     "id_business_status": 1,
+    "user_id": 123,
     "description": "Modern coffee shop with artisan coffee",
     "address": "Jl. Asia Afrika No. 45, Bandung",
     "phone": "081234567890",
@@ -1006,13 +1037,19 @@ Content-Type: application/json
 
 **Validation Rules:**
 - `business`: required, string, max 255 characters
-- `id_business_category`: required, must exist in business_categories table
-- `id_business_status`: required, must exist in business_statuses table
+- `id_business_category`: required, must exist in business_category table
+- `id_business_status`: required, must exist in business_status table
+- `user_id`: required, must exist in users table (the owner this business belongs to)
 - `description`: optional, string
 - `address`: optional, string
 - `phone`: optional, string, max 20 characters
 - `email`: optional, valid email format
 - `website`: optional, valid URL format
+
+**Important Notes:**
+- When creating a business, admin must specify which user (owner) the business belongs to via `user_id`
+- The system automatically creates an entry in the `business_account` pivot table
+- `created_by` is automatically set to the authenticated admin's ID
 
 **Success Response (201):**
 ```json
@@ -1029,6 +1066,21 @@ Content-Type: application/json
         "website": "https://newcoffeeshop.com",
         "id_business_category": 1,
         "id_business_status": 1,
+        "businessCategory": {
+            "id": 1,
+            "business_category": "Food & Beverage"
+        },
+        "businessStatus": {
+            "id": 1,
+            "business_status": "Active"
+        },
+        "users": [
+            {
+                "id": 123,
+                "name": "John Doe",
+                "account_role": "owner"
+            }
+        ],
         "created_at": "2025-11-09T11:00:00Z",
         "updated_at": "2025-11-09T11:00:00Z"
     }
@@ -1042,7 +1094,8 @@ Content-Type: application/json
     "message": "Validation failed",
     "errors": {
         "business": ["The business field is required."],
-        "id_business_category": ["The selected id business category is invalid."]
+        "id_business_category": ["The selected id business category is invalid."],
+        "user_id": ["The selected user id is invalid."]
     }
 }
 ```
@@ -1753,6 +1806,9 @@ GET /api/dashboard/admin/businesses/{businessId}/employees
 **Important Notes:**
 - All `/api/businesses` routes (except `/api/businesses-public`) are **Admin only**
 - Business-user relationship is many-to-many through `business_account` pivot table
+- When creating a business, admin **must specify** the `user_id` (owner) via the request payload
+- The system automatically creates the business-user relationship in `business_account` table
+- `created_by` in `business_account` records which admin created the assignment
 - Owner and Employee can view public businesses via `/api/businesses-public`
 - Only Admin can create, update, delete, and manage business assignments
 
