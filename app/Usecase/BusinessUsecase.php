@@ -127,13 +127,14 @@ class BusinessUsecase implements BusinessUsecaseInterface
     {
         $validator = Validator::make($data, [
             'business' => 'required|string|max:255',
-            'id_business_category' => 'required|exists:business_categories,id',
-            'id_business_status' => 'required|exists:business_statuses,id',
-            'description' => 'nullable|string',
-            'address' => 'nullable|string',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email',
-            'website' => 'nullable|url'
+            'id_business_category' => 'required|exists:business_category,id',
+            'id_business_status' => 'required|exists:business_status,id',
+            'id_user' => 'required|exists:users,id', // User (owner) that this business belongs to
+            // 'description' => 'nullable|string',
+            // 'address' => 'nullable|string',
+            // 'phone' => 'nullable|string|max:20',
+            // 'email' => 'nullable|email',
+            // 'website' => 'nullable|url'
         ]);
 
         if ($validator->fails()) {
@@ -141,12 +142,22 @@ class BusinessUsecase implements BusinessUsecaseInterface
         }
 
         try {
-            // Add current user ID if not provided
-            if (!isset($data['id_user'])) {
-                $data['id_user'] = Auth::id();
-            }
+            // Extract user_id from data (not part of business table)
+            $userId = $data['id_user'];
+            unset($data['id_user']);
 
+            // Create the business
             $business = $this->businessRepository->create($data);
+
+            // Assign the specified user to the business via pivot table
+            \App\Models\BusinessAccount::create([
+                'id_user' => $userId,
+                'id_business' => $business->id,
+                'created_by' => Auth::id() // The admin who created this assignment
+            ]);
+
+            // Reload business with relationships
+            $business = $this->businessRepository->findById($business->id);
 
             return [
                 'status' => 'success',
@@ -170,13 +181,13 @@ class BusinessUsecase implements BusinessUsecaseInterface
     {
         $validator = Validator::make($data, [
             'business' => 'sometimes|required|string|max:255',
-            'id_business_category' => 'sometimes|required|exists:business_categories,id',
-            'id_business_status' => 'sometimes|required|exists:business_statuses,id',
-            'description' => 'nullable|string',
-            'address' => 'nullable|string',
-            'phone' => 'nullable|string|max:20',
-            'email' => 'nullable|email',
-            'website' => 'nullable|url'
+            'id_business_category' => 'sometimes|required|exists:business_category,id',
+            'id_business_status' => 'sometimes|required|exists:business_status,id',
+            // 'description' => 'nullable|string',
+            // 'address' => 'nullable|string',
+            // 'phone' => 'nullable|string|max:20',
+            // 'email' => 'nullable|email',
+            // 'website' => 'nullable|url'
         ]);
 
         if ($validator->fails()) {
