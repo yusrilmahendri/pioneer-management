@@ -418,11 +418,11 @@ class DashboardUsecase implements DashboardUsecaseInterface
 
         switch ($user->account_role) {
             case 'admin':
-                return $this->getAdminDashboardData();
+                return $this->getAdminDashboard($userUuid);
             case 'owner':
-                return $this->getOwnerDashboardData($user->id);
+                return $this->getOwnerDashboard($userUuid);
             case 'employee':
-                return $this->getEmployeeDashboardData($user->id);
+                return $this->getEmployeeDashboard($userUuid);
             default:
                 throw new \Exception('Invalid user role');
         }
@@ -462,11 +462,11 @@ class DashboardUsecase implements DashboardUsecaseInterface
     }
 
     /**
-     * Get Admin Dashboard Data as array
+     * Get Admin Dashboard Data as array (Helper method - not in interface)
      * 
      * @return array Admin dashboard data
      */
-    protected function getAdminDashboardData(): array
+    protected function getAdminDashboardDataHelper(): array
     {
         return [
             'overview' => [
@@ -490,12 +490,12 @@ class DashboardUsecase implements DashboardUsecaseInterface
     }
 
     /**
-     * Get Owner Dashboard Data as array
+     * Get Owner Dashboard Data as array (Helper method - not in interface)
      * 
      * @param int $userId Owner's user ID
      * @return array Owner dashboard data
      */
-    protected function getOwnerDashboardData(int $userId): array
+    protected function getOwnerDashboardDataHelper(int $userId): array
     {
         $businesses = Business::where('user_id', $userId)->get();
         $businessIds = $businesses->pluck('id')->toArray();
@@ -535,12 +535,12 @@ class DashboardUsecase implements DashboardUsecaseInterface
     }
 
     /**
-     * Get Employee Dashboard Data as array
+     * Get Employee Dashboard Data as array (Helper method - not in interface)
      * 
      * @param int $userId Employee's user ID
      * @return array Employee dashboard data
      */
-    protected function getEmployeeDashboardData(int $userId): array
+    protected function getEmployeeDashboardDataHelper(int $userId): array
     {
         $myProducts = Product::where('user_id', $userId)->get();
         $user = User::find($userId);
