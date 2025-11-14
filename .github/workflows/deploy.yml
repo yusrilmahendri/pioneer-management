@@ -32,7 +32,6 @@ jobs:
 
             echo "⚙️ Running Database Migration..."
             php artisan migrate --force
-            php artisan migratre:fresh --seed
 
             echo "🚀 Optimizing Laravel Cache..."
             php artisan config:clear
