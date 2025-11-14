@@ -15,6 +15,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             ComprehensiveSeeder::class,
             SuperAdminTableSeeder::class, // Add the super admin as separate seeder
+            CashierTableSeeder::class,    // Add the cashier as separate seeder
         ]);
     }
 }
