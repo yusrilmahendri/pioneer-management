@@ -7,10 +7,12 @@ use App\Repository\ProductRepositoryInterface;
 use App\Repository\BusinessRepositoryInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
-use Illuminate\Support\Facades\DB;
 use App\Models\Pembayaran;
 use App\Models\Voucher;
 use App\Models\Expenditure;
+use App\Models\User;
+use App\Models\Product;
+use App\Models\Business;
 use App\Usecase\Contracts\DashboardUsecaseInterface;
 
 class DashboardUsecase implements DashboardUsecaseInterface
@@ -32,141 +34,167 @@ class DashboardUsecase implements DashboardUsecaseInterface
     /**
      * Get Admin Dashboard Data
      */
-    public function getAdminDashboard(): JsonResponse
+    public function getAdminDashboard(string $userUuid): array
     {
         try {
-            // System-wide statistics using repositories
-            $userStats = $this->userRepository->getStatistics();
-            $productStats = $this->productRepository->getStatistics();
-            $businessStats = $this->businessRepository->getStatistics();
-
-            // Payment and financial data (direct queries for now)
+            // System-wide statistics with fallback to direct queries
+            $totalUsers = User::count();
+            $totalProducts = Product::count();
+            $totalBusinesses = Business::count();
             $totalTransactions = Pembayaran::count();
             $totalVouchers = Voucher::count();
-            $totalExpenses = Expenditure::sum('amount');
+            $totalExpenses = Expenditure::sum('amount') ?? 0;
             $pendingExpenses = Expenditure::where('status', 'pending')->count();
             
             // Revenue data
-            $totalRevenue = Pembayaran::sum('total_amount');
+            $totalRevenue = Pembayaran::sum('total_amount') ?? 0;
             $monthlyRevenue = Pembayaran::whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
-                ->sum('total_amount');
+                ->sum('total_amount') ?? 0;
 
             // Recent activities
-            $recentUsers = $this->userRepository->getAll(['order_by' => 'created_at', 'order_direction' => 'desc'], false, 5);
-            $recentProducts = $this->productRepository->getAll(['order_by' => 'created_at', 'order_direction' => 'desc'], false, 5);
+            $recentUsers = User::orderBy('created_at', 'desc')->limit(5)->get();
+            $recentProducts = Product::orderBy('created_at', 'desc')->limit(5)->get();
 
-            return response()->json([
+            return [
                 'success' => true,
                 'message' => 'Admin dashboard data retrieved successfully',
                 'data' => [
                     'overview' => [
-                        'total_users' => $userStats['total'],
-                        'total_products' => $productStats['total'],
-                        'total_businesses' => $businessStats['total'],
+                        'total_users' => $totalUsers,
+                        'total_products' => $totalProducts,
+                        'total_businesses' => $totalBusinesses,
                         'total_transactions' => $totalTransactions,
                         'total_vouchers' => $totalVouchers,
-                        'total_expenses' => $totalExpenses ?? 0,
+                        'total_expenses' => $totalExpenses,
                         'pending_expenses' => $pendingExpenses,
-                        'total_revenue' => $totalRevenue ?? 0,
-                        'monthly_revenue' => $monthlyRevenue ?? 0,
-                    ],
-                    'statistics' => [
-                        'users' => $userStats,
-                        'products' => $productStats,
-                        'businesses' => $businessStats
+                        'total_revenue' => $totalRevenue,
+                        'monthly_revenue' => $monthlyRevenue,
                     ],
                     'recent_activities' => [
-                        'users' => $recentUsers,
-                        'products' => $recentProducts
+                        'users' => $recentUsers->toArray(),
+                        'products' => $recentProducts->toArray()
                     ]
                 ]
-            ]);
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
+            return [
                 'success' => false,
                 'message' => 'Failed to retrieve admin dashboard: ' . $e->getMessage()
-            ], 500);
+            ];
         }
     }
 
     /**
      * Get Owner Dashboard Data
      */
-    public function getOwnerDashboard(): JsonResponse
+    public function getOwnerDashboard(string $userUuid): array
     {
         try {
-            $userId = Auth::id();
+            $user = User::where('uuid', $userUuid)->first();
+            
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => 'User not found'
+                ];
+            }
             
             // Get owner's businesses
-            $businesses = $this->businessRepository->getByUserId($userId);
+            $businesses = Business::where('user_id', $user->id)->get();
             
             // Get business IDs for filtering
             $businessIds = $businesses->pluck('id')->toArray();
             
+            if (empty($businessIds)) {
+                return [
+                    'success' => true,
+                    'message' => 'Owner dashboard data retrieved successfully',
+                    'data' => [
+                        'overview' => [
+                            'total_businesses' => 0,
+                            'total_products' => 0,
+                            'total_revenue' => 0,
+                            'monthly_revenue' => 0,
+                            'pending_expenses' => 0,
+                        ],
+                        'businesses' => [],
+                        'recent_products' => []
+                    ]
+                ];
+            }
+            
             // Products in owner's businesses
-            $productsInBusiness = $this->productRepository->getAll(['business_ids' => $businessIds]);
+            $productsInBusiness = Product::whereIn('business_id', $businessIds)->get();
             
             // Financial data for owner's businesses
-            $businessRevenue = Pembayaran::whereIn('business_id', $businessIds)->sum('total_amount');
+            $businessRevenue = Pembayaran::whereIn('business_id', $businessIds)
+                ->sum('total_amount') ?? 0;
+            
             $monthlyBusinessRevenue = Pembayaran::whereIn('business_id', $businessIds)
                 ->whereMonth('created_at', now()->month)
                 ->whereYear('created_at', now()->year)
-                ->sum('total_amount');
-
+                ->sum('total_amount') ?? 0;
+            
             // Pending expenses for owner approval
             $pendingExpenses = Expenditure::whereIn('business_id', $businessIds)
                 ->where('status', 'pending')
                 ->count();
 
-            return response()->json([
+            return [
                 'success' => true,
                 'message' => 'Owner dashboard data retrieved successfully',
                 'data' => [
                     'overview' => [
                         'total_businesses' => $businesses->count(),
                         'total_products' => $productsInBusiness->count(),
-                        'total_revenue' => $businessRevenue ?? 0,
-                        'monthly_revenue' => $monthlyBusinessRevenue ?? 0,
+                        'total_revenue' => $businessRevenue,
+                        'monthly_revenue' => $monthlyBusinessRevenue,
                         'pending_expenses' => $pendingExpenses,
                     ],
-                    'businesses' => $businesses,
-                    'recent_products' => $productsInBusiness->take(5)
+                    'businesses' => $businesses->toArray(),
+                    'recent_products' => $productsInBusiness->take(5)->toArray()
                 ]
-            ]);
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
+            return [
                 'success' => false,
                 'message' => 'Failed to retrieve owner dashboard: ' . $e->getMessage()
-            ], 500);
+            ];
         }
     }
 
     /**
      * Get Employee Dashboard Data
      */
-    public function getEmployeeDashboard(): JsonResponse
+    public function getEmployeeDashboard(string $userUuid): array
     {
         try {
-            $userId = Auth::id();
+            $user = User::where('uuid', $userUuid)->first();
+            
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => 'User not found'
+                ];
+            }
             
             // Get employee's products
-            $myProducts = $this->productRepository->getByUserId($userId);
+            $myProducts = Product::where('user_id', $user->id)->get();
             
-            // Get employee's business (assuming employee belongs to one business)
-            $user = $this->userRepository->findById($userId);
+            // Get employee's business
             $businessId = $user->business_id ?? null;
             
             // Employee statistics
             $totalMyProducts = $myProducts->count();
-            $activeProducts = $myProducts->where('status_product.status', 'active')->count();
+            $activeProducts = $myProducts->where('status', 'active')->count();
             
             // Recent activities
             $recentProducts = $myProducts->take(5);
 
-            return response()->json([
+            return [
                 'success' => true,
                 'message' => 'Employee dashboard data retrieved successfully',
                 'data' => [
@@ -175,36 +203,39 @@ class DashboardUsecase implements DashboardUsecaseInterface
                         'active_products' => $activeProducts,
                         'business_id' => $businessId,
                     ],
-                    'my_products' => $recentProducts,
-                    'statistics' => [
-                        'products_by_category' => $myProducts->groupBy('categoryProduct.category')->map->count(),
-                        'products_by_status' => $myProducts->groupBy('statusProduct.status')->map->count()
-                    ]
+                    'my_products' => $recentProducts->toArray()
                 ]
-            ]);
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
+            return [
                 'success' => false,
                 'message' => 'Failed to retrieve employee dashboard: ' . $e->getMessage()
-            ], 500);
+            ];
         }
     }
 
     /**
      * Get expenditures for admin/owner approval
      */
-    public function getExpenditures(array $filters = []): JsonResponse
+    public function getExpenditures(array $filters = []): array
     {
         try {
-            $query = Expenditure::with(['user', 'approver']);
+            $query = Expenditure::query();
 
             // Apply role-based filtering
             $user = Auth::user();
+            
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ];
+            }
+            
             if ($user->account_role === 'owner') {
                 // Owner can only see expenditures from their businesses
-                $userBusinesses = $this->businessRepository->getByUserId($user->id);
-                $businessIds = $userBusinesses->pluck('id')->toArray();
+                $businessIds = Business::where('user_id', $user->id)->pluck('id')->toArray();
                 $query->whereIn('business_id', $businessIds);
             }
 
@@ -223,16 +254,15 @@ class DashboardUsecase implements DashboardUsecaseInterface
             // Calculate summary
             $baseQuery = Expenditure::query();
             if ($user->account_role === 'owner') {
-                $userBusinesses = $this->businessRepository->getByUserId($user->id);
-                $businessIds = $userBusinesses->pluck('id')->toArray();
+                $businessIds = Business::where('user_id', $user->id)->pluck('id')->toArray();
                 $baseQuery->whereIn('business_id', $businessIds);
             }
 
-            $totalPending = (clone $baseQuery)->where('status', 'pending')->sum('amount');
-            $totalApproved = (clone $baseQuery)->where('status', 'approved')->sum('amount');
-            $totalRejected = (clone $baseQuery)->where('status', 'rejected')->sum('amount');
+            $totalPending = (clone $baseQuery)->where('status', 'pending')->sum('amount') ?? 0;
+            $totalApproved = (clone $baseQuery)->where('status', 'approved')->sum('amount') ?? 0;
+            $totalRejected = (clone $baseQuery)->where('status', 'rejected')->sum('amount') ?? 0;
 
-            return response()->json([
+            return [
                 'success' => true,
                 'message' => 'Expenditures retrieved successfully',
                 'data' => [
@@ -244,79 +274,84 @@ class DashboardUsecase implements DashboardUsecaseInterface
                         'total' => $expenditures->total()
                     ],
                     'summary' => [
-                        'total_pending' => $totalPending ?? 0,
-                        'total_approved' => $totalApproved ?? 0,
-                        'total_rejected' => $totalRejected ?? 0
+                        'total_pending' => $totalPending,
+                        'total_approved' => $totalApproved,
+                        'total_rejected' => $totalRejected
                     ]
                 ]
-            ]);
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
+            return [
                 'success' => false,
                 'message' => 'Failed to retrieve expenditures: ' . $e->getMessage()
-            ], 500);
+            ];
         }
     }
 
     /**
      * Approve or reject expenditure
      */
-    public function approveExpenditure(string $uuid, array $data): JsonResponse
+    public function approveExpenditure(string $expenditureUuid, string $approverUuid): array
     {
         try {
-            $expenditure = Expenditure::where('uuid', $uuid)->first();
+            $expenditure = Expenditure::where('uuid', $expenditureUuid)->first();
 
             if (!$expenditure) {
-                return response()->json([
+                return [
                     'success' => false,
                     'message' => 'Expenditure not found'
-                ], 404);
+                ];
             }
 
-            $user = Auth::user();
+            $user = User::where('uuid', $approverUuid)->first();
+            
+            if (!$user) {
+                return [
+                    'success' => false,
+                    'message' => 'User not found'
+                ];
+            }
             
             // Check if user has permission to approve this expenditure
             if ($user->account_role === 'owner') {
-                $userBusinesses = $this->businessRepository->getByUserId($user->id);
-                $businessIds = $userBusinesses->pluck('id')->toArray();
+                $businessIds = Business::where('user_id', $user->id)->pluck('id')->toArray();
                 
                 if (!in_array($expenditure->business_id, $businessIds)) {
-                    return response()->json([
+                    return [
                         'success' => false,
                         'message' => 'You do not have permission to approve this expenditure'
-                    ], 403);
+                    ];
                 }
             }
 
             $expenditure->update([
-                'status' => $data['action'] === 'approve' ? 'approved' : 'rejected',
+                'status' => 'approved',
                 'approved_by' => $user->uuid,
-                'approved_at' => now(),
-                'notes' => $data['notes'] ?? null
+                'approved_at' => now()
             ]);
 
-            return response()->json([
+            return [
                 'success' => true,
-                'message' => 'Expenditure ' . $data['action'] . 'd successfully',
-                'data' => $expenditure->fresh(['user', 'approver'])
-            ]);
+                'message' => 'Expenditure approved successfully',
+                'data' => $expenditure->fresh()->toArray()
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
+            return [
                 'success' => false,
                 'message' => 'Failed to process expenditure: ' . $e->getMessage()
-            ], 500);
+            ];
         }
     }
 
     /**
      * Generate system reports
      */
-    public function generateReports(array $params = []): JsonResponse
-    {
+    public function generateReports(array $filters = []): array
+    {   
         try {
-            $period = $params['period'] ?? 'monthly';
+            $period = $filters['period'] ?? 'monthly';
             
             $salesData = [];
             $expenseData = [];
@@ -348,7 +383,7 @@ class DashboardUsecase implements DashboardUsecaseInterface
                 }
             }
 
-            return response()->json([
+            return [
                 'success' => true,
                 'message' => 'Reports generated successfully',
                 'data' => [
@@ -356,13 +391,167 @@ class DashboardUsecase implements DashboardUsecaseInterface
                     'expense_data' => $expenseData,
                     'period' => $period
                 ]
-            ]);
+            ];
 
         } catch (\Exception $e) {
-            return response()->json([
+            return [
                 'success' => false,
                 'message' => 'Failed to generate reports: ' . $e->getMessage()
-            ], 500);
+            ];
         }
+    }
+
+    /**
+     * Get Dashboard Data based on user role
+     * 
+     * @param string $userUuid User's UUID
+     * @return array Dashboard data array
+     * @throws \Exception When user not found or invalid role
+     */
+    public function getDashboardData(string $userUuid): array
+    {
+        $user = User::where('uuid', $userUuid)->first();
+        
+        if (!$user) {
+            throw new \Exception('User not found');
+        }
+
+        switch ($user->account_role) {
+            case 'admin':
+                return $this->getAdminDashboardData();
+            case 'owner':
+                return $this->getOwnerDashboardData($user->id);
+            case 'employee':
+                return $this->getEmployeeDashboardData($user->id);
+            default:
+                throw new \Exception('Invalid user role');
+        }
+    }
+
+    /**
+     * Get Dashboard Statistics based on user role
+     * 
+     * @param string $userUuid User's UUID
+     * @return array Statistics data array
+     * @throws \Exception When user not found
+     */
+    public function getDashboardStatistics(string $userUuid): array
+    {
+        $user = User::where('uuid', $userUuid)->first();
+        
+        if (!$user) {
+            throw new \Exception('User not found');
+        }
+
+        return [
+            'users' => [
+                'total' => User::count(),
+                'active' => User::where('status', 'active')->count(),
+                'inactive' => User::where('status', 'inactive')->count(),
+            ],
+            'products' => [
+                'total' => Product::count(),
+                'active' => Product::where('status', 'active')->count(),
+                'inactive' => Product::where('status', 'inactive')->count(),
+            ],
+            'businesses' => [
+                'total' => Business::count(),
+                'active' => Business::where('status', 'active')->count(),
+            ]
+        ];
+    }
+
+    /**
+     * Get Admin Dashboard Data as array
+     * 
+     * @return array Admin dashboard data
+     */
+    protected function getAdminDashboardData(): array
+    {
+        return [
+            'overview' => [
+                'total_users' => User::count(),
+                'total_products' => Product::count(),
+                'total_businesses' => Business::count(),
+                'total_transactions' => Pembayaran::count(),
+                'total_vouchers' => Voucher::count(),
+                'total_expenses' => Expenditure::sum('amount') ?? 0,
+                'pending_expenses' => Expenditure::where('status', 'pending')->count(),
+                'total_revenue' => Pembayaran::sum('total_amount') ?? 0,
+                'monthly_revenue' => Pembayaran::whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year)
+                    ->sum('total_amount') ?? 0,
+            ],
+            'recent_activities' => [
+                'users' => User::orderBy('created_at', 'desc')->limit(5)->get()->toArray(),
+                'products' => Product::orderBy('created_at', 'desc')->limit(5)->get()->toArray()
+            ]
+        ];
+    }
+
+    /**
+     * Get Owner Dashboard Data as array
+     * 
+     * @param int $userId Owner's user ID
+     * @return array Owner dashboard data
+     */
+    protected function getOwnerDashboardData(int $userId): array
+    {
+        $businesses = Business::where('user_id', $userId)->get();
+        $businessIds = $businesses->pluck('id')->toArray();
+        
+        if (empty($businessIds)) {
+            return [
+                'overview' => [
+                    'total_businesses' => 0,
+                    'total_products' => 0,
+                    'total_revenue' => 0,
+                    'monthly_revenue' => 0,
+                    'pending_expenses' => 0,
+                ],
+                'businesses' => [],
+                'recent_products' => []
+            ];
+        }
+        
+        $productsInBusiness = Product::whereIn('business_id', $businessIds)->get();
+        
+        return [
+            'overview' => [
+                'total_businesses' => $businesses->count(),
+                'total_products' => $productsInBusiness->count(),
+                'total_revenue' => Pembayaran::whereIn('business_id', $businessIds)->sum('total_amount') ?? 0,
+                'monthly_revenue' => Pembayaran::whereIn('business_id', $businessIds)
+                    ->whereMonth('created_at', now()->month)
+                    ->whereYear('created_at', now()->year)
+                    ->sum('total_amount') ?? 0,
+                'pending_expenses' => Expenditure::whereIn('business_id', $businessIds)
+                    ->where('status', 'pending')
+                    ->count(),
+            ],
+            'businesses' => $businesses->toArray(),
+            'recent_products' => $productsInBusiness->take(5)->toArray()
+        ];
+    }
+
+    /**
+     * Get Employee Dashboard Data as array
+     * 
+     * @param int $userId Employee's user ID
+     * @return array Employee dashboard data
+     */
+    protected function getEmployeeDashboardData(int $userId): array
+    {
+        $myProducts = Product::where('user_id', $userId)->get();
+        $user = User::find($userId);
+        
+        return [
+            'overview' => [
+                'total_my_products' => $myProducts->count(),
+                'active_products' => $myProducts->where('status', 'active')->count(),
+                'business_id' => $user->business_id ?? null,
+            ],
+            'my_products' => $myProducts->take(5)->toArray()
+        ];
     }
 }
