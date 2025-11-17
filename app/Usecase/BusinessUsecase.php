@@ -127,9 +127,12 @@ class BusinessUsecase implements BusinessUsecaseInterface
     {
         $validator = Validator::make($data, [
             'business' => 'required|string|max:255',
+            'start_date' => 'required|date',
             'id_business_category' => 'required|exists:business_category,id',
             'id_business_status' => 'required|exists:business_status,id',
             'id_user' => 'required|exists:users,id', // User (owner) that this business belongs to
+            'id_provinsi' => 'required',
+            'id_kabupaten' => 'required',
             // 'description' => 'nullable|string',
             // 'address' => 'nullable|string',
             // 'phone' => 'nullable|string|max:20',
@@ -181,8 +184,11 @@ class BusinessUsecase implements BusinessUsecaseInterface
     {
         $validator = Validator::make($data, [
             'business' => 'sometimes|required|string|max:255',
+            'start_date' => 'sometimes|date',
             'id_business_category' => 'sometimes|required|exists:business_category,id',
             'id_business_status' => 'sometimes|required|exists:business_status,id',
+            'id_provinsi' => 'sometimes',
+            'id_kabupaten' => 'sometimes',
             // 'description' => 'nullable|string',
             // 'address' => 'nullable|string',
             // 'phone' => 'nullable|string|max:20',
