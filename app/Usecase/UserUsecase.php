@@ -252,22 +252,92 @@ class UserUsecase implements UserUsecaseInterface
             ];
         }
 
+        // Delete expired tokens (older than 24 hours) before creating new one
+        $this->deleteExpiredTokens($user);
+
         $user->load(['businesses.businessCategory', 'businesses.businessStatus']);
-        $token = $user->createToken('api-token')->plainTextToken;
+        
+        // Create token with 24-hour expiration
+        $token = $user->createToken('api-token', ['*'], now()->addHours(24))->plainTextToken;
 
         return [
             'status' => 'success',
             'message' => 'Login successful',
             'data' => [
                 'token' => $token,
+                'token_expires_at' => now()->addHours(24)->toISOString(),
                 'user' => $this->formatUserData($user)
             ]
         ];
     }
 
+    public function logoutUser($user): array
+    {
+        try {
+            // Delete current access token
+            $user->currentAccessToken()->delete();
+
+            return [
+                'status' => 'success',
+                'message' => 'Logged out successfully',
+                'data' => null
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to logout',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    public function logoutFromAllDevices($user): array
+    {
+        try {
+            // Delete all tokens for this user
+            $user->tokens()->delete();
+
+            return [
+                'status' => 'success',
+                'message' => 'Logged out from all devices successfully',
+                'data' => null
+            ];
+        } catch (\Exception $e) {
+            return [
+                'status' => 'error',
+                'message' => 'Failed to logout from all devices',
+                'error' => $e->getMessage()
+            ];
+        }
+    }
+
+    /**
+     * Delete expired tokens for a user
+     */
+    private function deleteExpiredTokens($user): void
+    {
+        $user->tokens()->where('created_at', '<', now()->subHours(24))->delete();
+    }
+
     public function registerUser(array $payload): array
     {
-        return $this->createUser($payload);
+        // Skip validation here since it's already validated in RegisterRequest
+        // Just process the user creation directly
+        
+        // Hash password
+        $payload['password'] = Hash::make($payload['password']);
+
+        // Generate UUID
+        $payload['uuid'] = (string) Str::uuid();
+
+        // Create user
+        $user = $this->userRepository->create($payload);
+
+        return [
+            'status' => 'success',
+            'message' => 'User registered successfully',
+            'data' => $this->formatUserData($user)
+        ];
     }
 
     public function forgotPassword(array $data): array
@@ -678,7 +748,7 @@ class UserUsecase implements UserUsecaseInterface
     /**
      * Format user data for consistent API responses
      */
-    protected function formatUserData($user): array
+    public function formatUserData($user): array
     {
         return [
             'uuid' => $user->uuid,

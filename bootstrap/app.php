@@ -24,6 +24,12 @@ return Application::configure(basePath: dirname(__DIR__))
             'permission' => PermissionMiddleware::class,
             'role_or_permission' => RoleOrPermissionMiddleware::class,
             'account_role' => CheckAccountRole::class,
+            'token.expiration' => \App\Http\Middleware\TokenExpiration::class,
+        ]);
+
+        // Add token expiration middleware to API group
+        $middleware->api(append: [
+            \App\Http\Middleware\TokenExpiration::class,
         ]);
     })
     ->withExceptions(function (Exceptions $exceptions) {

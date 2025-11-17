@@ -77,11 +77,13 @@ Content-Type: application/json
 **Success Response (200):**
 ```json
 {
-    "success": true,
+    "status": "success",
     "message": "Login successful",
     "data": {
+        "token": "1|abc123def456...",
+        "token_expires_at": "2025-11-18T12:00:00.000000Z",
         "user": {
-            "id": "uuid-string",
+            "uuid": "uuid-string",
             "name": "John Doe",
             "email": "user@example.com",
             "username": "johndoe",
@@ -89,14 +91,15 @@ Content-Type: application/json
             "job_role": "Sales Representative",
             "placement": "Jakarta Office",
             "phone": "1234567890",
-            "business": {
-                "id": 1,
-                "name": "Warung Kopi Santai",
-                "category": "Food & Beverage"
-            }
-        },
-        "token": "1|abc123def456...",
-        "token_type": "Bearer"
+            "businesses": [
+                {
+                    "id": 1,
+                    "name": "Warung Kopi Santai",
+                    "business_category": "Food & Beverage",
+                    "business_status": "Active"
+                }
+            ]
+        }
     }
 }
 ```
@@ -104,10 +107,17 @@ Content-Type: application/json
 **Error Response (401):**
 ```json
 {
-    "success": false,
-    "message": "Invalid credentials"
+    "status": "error",
+    "message": "Invalid credentials",
+    "data": null
 }
 ```
+
+**Important Notes:**
+- ✅ Tokens automatically expire after **24 hours**
+- ✅ `token_expires_at` shows exact expiration timestamp
+- ✅ Expired tokens are automatically deleted from database
+- ✅ Users must re-login after token expiration
 
 ### Register (Admin Creation)
 
@@ -188,10 +198,141 @@ Content-Type: application/json
 **Success Response (200):**
 ```json
 {
-    "success": true,
-    "message": "Password has been reset successfully"
+    "status": "success",
+    "message": "Password has been reset successfully",
+    "data": null
 }
 ```
+
+### Logout (Single Device)
+
+```http
+POST /api/auth/logout
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Description:** Logs out the user from the current device only by invalidating the current access token.
+
+**Success Response (200):**
+```json
+{
+    "status": "success",
+    "message": "Logged out successfully",
+    "data": null
+}
+```
+
+**Error Response (401):**
+```json
+{
+    "status": "error",
+    "message": "Token expired. Please login again.",
+    "error_code": "TOKEN_EXPIRED"
+}
+```
+
+### Logout from All Devices
+
+```http
+POST /api/auth/logout-all
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+**Description:** Logs out the user from all devices by invalidating all access tokens for the user.
+
+**Success Response (200):**
+```json
+{
+    "status": "success",
+    "message": "Logged out from all devices successfully",
+    "data": null
+}
+```
+
+### Check Token Validity
+
+```http
+GET /api/auth/check
+Authorization: Bearer {token}
+```
+
+**Description:** Validates the current token and returns user information with token expiration details.
+
+**Success Response (200):**
+```json
+{
+    "status": "success",
+    "message": "Token is valid",
+    "data": {
+        "user": {
+            "uuid": "uuid-string",
+            "name": "John Doe",
+            "email": "user@example.com",
+            "account_role": "employee",
+            "businesses": [...]
+        },
+        "token_created_at": "2025-11-17T12:00:00.000000Z",
+        "token_expires_at": "2025-11-18T12:00:00.000000Z",
+        "token_valid": true
+    }
+}
+```
+
+**Error Response (401 - Expired Token):**
+```json
+{
+    "status": "error",
+    "message": "Token expired. Please login again.",
+    "error_code": "TOKEN_EXPIRED"
+}
+```
+
+**Error Response (401 - Invalid Token):**
+```json
+{
+    "status": "error",
+    "message": "Invalid token",
+    "error": "Token not found or malformed"
+}
+```
+
+## Token Management & Expiration
+
+### Automatic Token Expiration
+
+**Key Features:**
+- ✅ **24-Hour Expiration**: All tokens automatically expire 24 hours after creation
+- ✅ **Automatic Cleanup**: Expired tokens are automatically removed from database
+- ✅ **Middleware Protection**: All protected routes check token validity on every request
+- ✅ **Clear Error Messages**: Users receive specific error codes when tokens expire
+
+### Token Lifecycle
+
+1. **Login** → Token created with 24-hour validity
+2. **API Requests** → Middleware checks token age on every request
+3. **After 24 Hours** → Token automatically expires
+4. **Expired Request** → Returns 401 error with `TOKEN_EXPIRED` code
+5. **Hourly Cleanup** → Background job removes expired tokens
+
+### Error Handling
+
+When a token expires, all subsequent requests will return:
+
+```json
+{
+    "status": "error",
+    "message": "Token expired. Please login again.",
+    "error_code": "TOKEN_EXPIRED"
+}
+```
+
+**Frontend Integration Tips:**
+- Check for `error_code: "TOKEN_EXPIRED"` in 401 responses
+- Automatically redirect to login page when token expires
+- Use `/api/auth/check` endpoint to validate tokens before critical operations
+- Implement token refresh logic or session warnings as needed
 
 ## Role-Based User Creation
 
@@ -1745,8 +1886,11 @@ GET /api/dashboard/admin/businesses/{businessId}/employees
 ### Authentication Endpoints
 | Method | Endpoint | Access | Description |
 |--------|----------|---------|-------------|
-| POST | `/api/auth/login` | Public | User login |
-| POST | `/api/auth/register` | Public | Admin registration |
+| POST | `/api/auth/login` | Public | User login with 24h token |
+| POST | `/api/auth/register` | Public | User registration |
+| POST | `/api/auth/logout` | Authenticated | Logout from current device |
+| POST | `/api/auth/logout-all` | Authenticated | Logout from all devices |
+| GET | `/api/auth/check` | Authenticated | Check token validity |
 | POST | `/api/auth/forgot-password` | Public | Request password reset |
 | POST | `/api/auth/reset-password` | Public | Reset password |
 

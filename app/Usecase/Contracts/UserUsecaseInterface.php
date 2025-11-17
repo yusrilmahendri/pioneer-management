@@ -52,6 +52,16 @@ interface UserUsecaseInterface
     public function loginUser(array $credentials): array;
 
     /**
+     * User logout
+     */
+    public function logoutUser($user): array;
+
+    /**
+     * Logout from all devices
+     */
+    public function logoutFromAllDevices($user): array;
+
+    /**
      * Register new user
      */
     public function registerUser(array $payload): array;

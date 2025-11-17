@@ -10,6 +10,7 @@ use App\Delivery\Http\Requests\ForgotPasswordRequest;
 use App\Delivery\Http\Requests\ResetPasswordRequest;
 use App\Delivery\Http\Requests\CreateOwnerRequest;
 use App\Delivery\Http\Requests\CreateEmployeeRequest;
+use App\Delivery\Http\Requests\RegisterRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
@@ -157,18 +158,88 @@ class UserController extends Controller
     /**
      * User registration
      */
-    public function register(CreateUserRequest $request): JsonResponse
+    public function register(RegisterRequest $request): JsonResponse
     {
         try {
             $result = $this->userUsecase->registerUser($request->validated());
 
             return response()->json($result, 201);
+        } catch (\Illuminate\Validation\ValidationException $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Validation failed',
+                'errors' => $e->errors()
+            ], 422);
         } catch (\Exception $e) {
             return response()->json([
                 'status' => 'error',
                 'message' => 'An error occurred during registration',
                 'error' => $e->getMessage()
             ], 500);
+        }
+    }
+
+    /**
+     * User logout
+     */
+    public function logout(Request $request): JsonResponse
+    {
+        try {
+            $result = $this->userUsecase->logoutUser($request->user());
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred during logout',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Logout from all devices
+     */
+    public function logoutFromAllDevices(Request $request): JsonResponse
+    {
+        try {
+            $result = $this->userUsecase->logoutFromAllDevices($request->user());
+
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'An error occurred during logout from all devices',
+                'error' => $e->getMessage()
+            ], 500);
+        }
+    }
+
+    /**
+     * Check token validity and get user info
+     */
+    public function checkToken(Request $request): JsonResponse
+    {
+        try {
+            $user = $request->user();
+            $token = $user->currentAccessToken();
+
+            return response()->json([
+                'status' => 'success',
+                'message' => 'Token is valid',
+                'data' => [
+                    'user' => $this->userUsecase->formatUserData($user),
+                    'token_created_at' => $token->created_at->toISOString(),
+                    'token_expires_at' => $token->created_at->addHours(24)->toISOString(),
+                    'token_valid' => $token->created_at->gte(now()->subHours(24))
+                ]
+            ]);
+        } catch (\Exception $e) {
+            return response()->json([
+                'status' => 'error',
+                'message' => 'Invalid token',
+                'error' => $e->getMessage()
+            ], 401);
         }
     }
 

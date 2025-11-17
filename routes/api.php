@@ -13,6 +13,13 @@ Route::post('/auth/register', [UserController::class, 'register']);
 Route::post('/auth/forgot-password', [UserController::class, 'forgotPassword']);
 Route::post('/auth/reset-password', [UserController::class, 'resetPassword']);
 
+// Authentication routes (protected)
+Route::middleware('auth:sanctum')->group(function () {
+    Route::post('/auth/logout', [UserController::class, 'logout']);
+    Route::post('/auth/logout-all', [UserController::class, 'logoutFromAllDevices']);
+    Route::get('/auth/check', [UserController::class, 'checkToken']);
+});
+
 // Public routes
 Route::get('/businesses-public', [BusinessController::class, 'index']); // Public access to businesses list
 
