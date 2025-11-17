@@ -60,12 +60,12 @@ class ProductRepository implements ProductRepositoryInterface
         return $this->buildQuery($params)->paginate($perPage);
     }
 
-    public function getById(int $id): ?Products
+    public function getById(int $id): ?Product
     {
         return $this->model->find($id);
     }
 
-    public function getByUuid(string $uuid): ?Products
+    public function getByUuid(string $uuid): ?Product
     {
         return $this->model->where('uuid', $uuid)->first();
     }
@@ -92,7 +92,7 @@ class ProductRepository implements ProductRepositoryInterface
         return $this->model->where('status_id', $statusId)->get();
     }
 
-    public function create(array $data): Products
+    public function create(array $data): Product
     {
         return $this->model->create($data);
     }

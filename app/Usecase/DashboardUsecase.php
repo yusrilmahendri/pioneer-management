@@ -2,8 +2,8 @@
 
 namespace App\Usecase;
 
-use App\Repository\UserRepositoryInterface;
-use App\Repository\ProductRepositoryInterface;
+use App\Repository\Contracts\UserRepositoryInterface;
+use App\Repository\Contracts\ProductRepositoryInterface;
 use App\Repository\BusinessRepositoryInterface;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;

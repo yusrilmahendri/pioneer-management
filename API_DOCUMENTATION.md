@@ -434,37 +434,20 @@ Content-Type: application/json
 
 ## Dashboard Routes
 
-### Main Dashboard
+### Single Dashboard Endpoint (All Roles)
 
 ```http
 GET /api/dashboard
 Authorization: Bearer {token}
 ```
 
-**Description:** Returns role-specific dashboard data based on authenticated user's account_role.
+**Description:** Single endpoint that serves different dashboard data based on the authenticated user's role. Automatically detects user role and returns appropriate data.
 
-**Success Response (200):**
-```json
-{
-    "success": true,
-    "message": "Dashboard data retrieved successfully",
-    "data": {
-        "role": "employee",
-        "redirect_url": "/dashboard/employee"
-    }
-}
-```
+**Supported Roles:** `admin`, `owner`, `employee`
 
-### Admin Dashboard
+#### Admin Dashboard Response (200)
 
-```http
-GET /api/dashboard/admin
-Authorization: Bearer {admin_token}
-```
-
-**Required Role:** Admin
-
-**Success Response (200):**
+**When user role is `admin`:**
 ```json
 {
     "success": true,
@@ -472,83 +455,201 @@ Authorization: Bearer {admin_token}
     "data": {
         "overview": {
             "total_users": 150,
+            "total_products": 500,
             "total_businesses": 25,
-            "total_revenue": 50000000,
-            "monthly_growth": 15.2,
-            "pending_expenditures": 5,
-            "system_alerts": 2
+            "total_transactions": 1200,
+            "total_vouchers": 50,
+            "total_expenses": 25000000,
+            "pending_expenses": 5,
+            "total_revenue": 150000000,
+            "monthly_revenue": 12000000
         },
-        "recent_activities": [...],
-        "user_statistics": {...}
+        "recent_activities": {
+            "users": [...],
+            "products": [...]
+        }
     }
 }
 ```
 
-### Owner Dashboard
+#### Owner Dashboard Response (200)
 
-```http
-GET /api/dashboard/owner
-Authorization: Bearer {owner_token}
-```
-
-**Required Role:** Owner
-
-**Success Response (200):**
+**When user role is `owner`:**
 ```json
 {
     "success": true,
     "message": "Owner dashboard data retrieved successfully",
     "data": {
         "overview": {
-            "total_revenue": 5000000,
-            "monthly_revenue": 500000,
-            "total_products": 100,
-            "active_products": 85,
-            "total_employees": 15,
-            "total_expenses": 200000,
-            "monthly_profit": 300000
+            "total_businesses": 3,
+            "total_products": 45,
+            "total_revenue": 15000000,
+            "monthly_revenue": 2500000,
+            "pending_expenses": 2
         },
-        "monthly_trends": [...],
-        "top_employees": [...],
-        "business_performance": {...}
+        "businesses": [
+            {
+                "id": 1,
+                "business": "Warung Kopi Santai",
+                "category": "Food & Beverage",
+                "status": "Active"
+            }
+        ],
+        "recent_products": [...]
     }
 }
 ```
 
-### Employee Dashboard
+#### Employee Dashboard Response (200)
 
-```http
-GET /api/dashboard/employee
-Authorization: Bearer {employee_token}
-```
-
-**Required Role:** Employee
-
-**Success Response (200):**
+**When user role is `employee`:**
 ```json
 {
     "success": true,
     "message": "Employee dashboard data retrieved successfully",
     "data": {
         "overview": {
-            "total_products": 25,
-            "total_transactions": 150,
-            "total_revenue": 1500000,
-            "monthly_sales": 300000
+            "total_my_products": 12,
+            "active_products": 10,
+            "business_id": 5
         },
-        "recent_products": [...],
-        "user_info": {
-            "name": "John Doe",
-            "placement": "Jakarta Office",
-            "job_role": "Sales Representative",
-            "account_role": "employee"
+        "my_products": [
+            {
+                "id": "uuid-string",
+                "name_product": "Coffee Latte",
+                "price": 25000,
+                "stock": 50,
+                "status": "active"
+            }
+        ]
+    }
+}
+```
+
+**Key Benefits:**
+- ✅ **Single Endpoint**: One route handles all roles (`/api/dashboard`)
+- ✅ **Automatic Role Detection**: No need to specify role in URL
+- ✅ **Role-Based Data**: Each role receives appropriate data automatically
+- ✅ **Consistent Structure**: All responses follow the same JSON format
+- ✅ **Easy Frontend Integration**: Same API call works for all user types
+
+**Frontend Usage Example:**
+```javascript
+// Same code works for all roles - response adapts automatically
+const dashboardData = await fetch('/api/dashboard', {
+  headers: { 'Authorization': 'Bearer ' + token }
+});
+const response = await dashboardData.json();
+// Response data varies by user role automatically
+```
+
+### Additional Dashboard Endpoints
+
+#### Get Expenditures (Admin/Owner Only)
+
+```http
+GET /api/dashboard/expenditures
+Authorization: Bearer {admin_or_owner_token}
+```
+
+**Required Roles:** Admin, Owner
+
+**Query Parameters:**
+- `status` (optional): pending, approved, rejected
+- `start_date` (optional): Filter from date (Y-m-d format)
+- `end_date` (optional): Filter to date (Y-m-d format)
+- `per_page` (optional): Items per page (default: 15)
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Expenditures retrieved successfully",
+    "data": {
+        "expenditures": [...],
+        "pagination": {
+            "current_page": 1,
+            "last_page": 5,
+            "per_page": 15,
+            "total": 67
         },
-        "business_info": {
-            "id": 1,
-            "name": "Warung Kopi Santai",
-            "category": "Food & Beverage",
-            "status": "Active"
+        "summary": {
+            "total_pending": 150000,
+            "total_approved": 2500000,
+            "total_rejected": 75000
         }
+    }
+}
+```
+
+#### Approve Expenditure (Admin/Owner Only)
+
+```http
+POST /api/dashboard/expenditures/{uuid}/approve
+Authorization: Bearer {admin_or_owner_token}
+Content-Type: application/json
+```
+
+**Required Roles:** Admin, Owner
+
+**Path Parameters:**
+- `uuid` (required): Expenditure UUID
+
+**Request Body:**
+```json
+{
+    "action": "approve",
+    "notes": "Approved for legitimate business expense"
+}
+```
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Expenditure approved successfully",
+    "data": {
+        "expenditure": {
+            "id": "uuid-string",
+            "status": "approved",
+            "approved_by": "admin-uuid",
+            "approved_at": "2025-11-17T12:00:00Z"
+        }
+    }
+}
+```
+
+#### Generate Reports (Admin/Owner Only)
+
+```http
+GET /api/dashboard/reports
+Authorization: Bearer {admin_or_owner_token}
+```
+
+**Required Roles:** Admin, Owner
+
+**Query Parameters:**
+- `period` (optional): monthly, yearly (default: monthly)
+
+**Success Response (200):**
+```json
+{
+    "success": true,
+    "message": "Reports generated successfully",
+    "data": {
+        "sales_data": [
+            {
+                "period": "2025-11",
+                "amount": 15000000
+            }
+        ],
+        "expense_data": [
+            {
+                "period": "2025-11",
+                "amount": 3000000
+            }
+        ],
+        "period": "monthly"
     }
 }
 ```
@@ -1543,141 +1644,19 @@ Content-Type: application/json
 }
 ```
 
-## Expenditure Management
+## Additional Notes
 
-### Get Expenditures
+### Dashboard Implementation
 
-```http
-GET /api/dashboard/expenditures
-Authorization: Bearer {admin_or_owner_token}
-```
+The dashboard system has been simplified to use a **single endpoint approach**:
 
-**Required Roles:** Admin, Owner
+- **Single Route**: `GET /api/dashboard` serves all user roles
+- **Automatic Role Detection**: System automatically detects user role and serves appropriate data  
+- **Role-Specific Responses**: Admin, Owner, and Employee each receive different dashboard data
+- **Additional Features**: Expenditure management and reports available via separate dashboard endpoints
+- **Clean Architecture**: Follows clean architecture principles with proper separation of concerns
 
-**Query Parameters:**
-- `status` (optional): pending, approved, rejected
-- `employee_id` (optional): Filter by employee UUID
-- `start_date` (optional): Filter from date (Y-m-d format)
-- `end_date` (optional): Filter to date (Y-m-d format)
-- `category` (optional): Filter by expense category
-- `per_page` (optional): Items per page (default: 15)
-
-**Success Response (200):**
-```json
-{
-    "success": true,
-    "message": "Expenditures retrieved successfully",
-    "data": {
-        "current_page": 1,
-        "data": [
-            {
-                "id": "uuid-string",
-                "category": "Transportation",
-                "description": "Taxi fare for client meeting",
-                "amount": 50000,
-                "status": "pending",
-                "receipt_image": "storage/receipts/image.jpg",
-                "employee": {
-                    "id": "uuid-string",
-                    "name": "John Doe"
-                },
-                "submitted_at": "2025-11-09T10:00:00Z",
-                "processed_at": null,
-                "processed_by": null
-            }
-        ],
-        "per_page": 15,
-        "total": 50
-    }
-}
-```
-
-### Approve/Reject Expenditure
-
-```http
-POST /api/dashboard/expenditures/{uuid}/approve
-Authorization: Bearer {admin_or_owner_token}
-Content-Type: application/json
-```
-
-**Required Roles:** Admin, Owner
-
-**Path Parameters:**
-- `uuid` (required): Expenditure UUID
-
-**Request Body:**
-```json
-{
-    "action": "approve",
-    "notes": "Approved for legitimate business expense"
-}
-```
-
-**Success Response (200):**
-```json
-{
-    "success": true,
-    "message": "Expenditure approved successfully",
-    "data": {
-        "expenditure": {
-            "id": "uuid-string",
-            "status": "approved",
-            "notes": "Approved for legitimate business expense",
-            "processed_at": "2025-11-09T12:00:00Z",
-            "processed_by": "admin-uuid"
-        }
-    }
-}
-```
-
-## Reports
-
-### Generate Reports
-
-```http
-GET /api/dashboard/reports
-Authorization: Bearer {admin_or_owner_token}
-```
-
-**Required Roles:** Admin, Owner
-
-**Query Parameters:**
-- `period` (optional): daily, weekly, monthly, yearly (default: monthly)
-- `start_date` (optional): Custom start date (Y-m-d format)
-- `end_date` (optional): Custom end date (Y-m-d format)
-- `type` (optional): financial, users, products, businesses
-
-**Success Response (200):**
-```json
-{
-    "success": true,
-    "message": "Reports generated successfully",
-    "data": {
-        "period": "monthly",
-        "date_range": {
-            "start": "2025-11-01",
-            "end": "2025-11-30"
-        },
-        "financial_summary": {
-            "total_revenue": 50000000,
-            "total_expenses": 15000000,
-            "net_profit": 35000000,
-            "profit_margin": 70
-        },
-        "business_metrics": {
-            "active_businesses": 45,
-            "new_businesses": 5,
-            "total_products": 500,
-            "total_transactions": 2500
-        },
-        "user_metrics": {
-            "total_users": 150,
-            "new_users": 25,
-            "active_users": 140
-        }
-    }
-}
-```
+For expenditure management and reporting features, see the **Additional Dashboard Endpoints** section above.
 
 ## HTTP Status Codes
 
@@ -1825,9 +1804,9 @@ The API uses standard HTTP status codes to indicate success or failure:
 | Endpoint | Admin | Owner | Employee | Public |
 |----------|-------|-------|----------|--------|
 | `/api/dashboard` | ✅ | ✅ | ✅ | ❌ |
-| `/api/dashboard/admin/*` | ✅ | ❌ | ❌ | ❌ |
-| `/api/dashboard/owner/*` | ❌ | ✅ | ❌ | ❌ |
-| `/api/dashboard/employee/*` | ❌ | ❌ | ✅ | ❌ |
+| `/api/dashboard/expenditures` | ✅ | ✅ | ❌ | ❌ |
+| `/api/dashboard/expenditures/{uuid}/approve` | ✅ | ✅ | ❌ | ❌ |
+| `/api/dashboard/reports` | ✅ | ✅ | ❌ | ❌ |
 | `/api/businesses-public` | ✅ | ✅ | ✅ | ✅ |
 | `/api/businesses` | ✅ | ❌ | ❌ | ❌ |
 | `/api/businesses/*` (all routes) | ✅ | ❌ | ❌ | ❌ |
@@ -1903,10 +1882,10 @@ GET /api/dashboard/admin/businesses/{businessId}/employees
 ### Dashboard Endpoints  
 | Method | Endpoint | Required Role | Description |
 |--------|----------|---------------|-------------|
-| GET | `/api/dashboard` | Any | Role-based dashboard redirect |
-| GET | `/api/dashboard/admin` | Admin | Admin dashboard data |
-| GET | `/api/dashboard/owner` | Owner | Owner dashboard data |
-| GET | `/api/dashboard/employee` | Employee | Employee dashboard data |
+| GET | `/api/dashboard` | Any | Single dashboard - returns role-specific data |
+| GET | `/api/dashboard/expenditures` | Admin, Owner | Get expenditures for approval |
+| POST | `/api/dashboard/expenditures/{uuid}/approve` | Admin, Owner | Approve/reject expenditure |
+| GET | `/api/dashboard/reports` | Admin, Owner | Generate financial reports |
 
 ### User Management (Admin/Owner Only)
 | Method | Endpoint | Required Role | Description |

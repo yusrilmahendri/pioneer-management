@@ -26,20 +26,13 @@ Route::get('/businesses-public', [BusinessController::class, 'index']); // Publi
 // Protected routes requiring authentication
 Route::middleware('auth:sanctum')->group(function () {
     
-    // Dashboard routes
-    Route::prefix('dashboard')->group(function () {
-        Route::get('/', [DashboardController::class, 'index']); // Role-based dashboard
-        Route::get('/admin', [DashboardController::class, 'adminDashboard'])->middleware('account_role:admin');
-        Route::get('/owner', [DashboardController::class, 'ownerDashboard'])->middleware('account_role:owner');
-        Route::get('/employee', [DashboardController::class, 'employeeDashboard'])->middleware('account_role:employee');
-        
-        // Expenditure management
-        Route::get('/expenditures', [DashboardController::class, 'getExpenditures'])->middleware('account_role:admin,owner');
-        Route::post('/expenditures/{uuid}/approve', [DashboardController::class, 'approveExpenditure'])->middleware('account_role:admin,owner');
-        
-        // Reports
-        Route::get('/reports', [DashboardController::class, 'generateReports'])->middleware('account_role:admin,owner');
-    });
+    // Single dashboard route - serves different data based on user role
+    Route::get('/dashboard', [DashboardController::class, 'index']); // Single route for all roles
+    
+    // Additional dashboard endpoints (optional)
+    Route::get('/dashboard/expenditures', [DashboardController::class, 'getExpenditures'])->middleware('account_role:admin,owner');
+    Route::post('/dashboard/expenditures/{uuid}/approve', [DashboardController::class, 'approveExpenditure'])->middleware('account_role:admin,owner');
+    Route::get('/dashboard/reports', [DashboardController::class, 'generateReports'])->middleware('account_role:admin,owner');
     
     // User profile routes
     Route::prefix('user')->group(function () {

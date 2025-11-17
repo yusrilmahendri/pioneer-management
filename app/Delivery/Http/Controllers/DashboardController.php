@@ -19,79 +19,98 @@ class DashboardController extends Controller
     }
 
     /**
-     * Get dashboard data based on user role
+     * Single dashboard endpoint - serves different data based on user role
+     * This is the main dashboard route that handles all roles (admin, owner, employee)
      */
     public function index(): JsonResponse
     {
-        $user = Auth::user();
-        
-        switch ($user->account_role) {
-            case 'admin':
-                return $this->dashboardUsecase->getAdminDashboard();
-            case 'owner':
-                return $this->dashboardUsecase->getOwnerDashboard();
-            case 'employee':
-                return $this->dashboardUsecase->getEmployeeDashboard();
-            default:
+        try {
+            $user = Auth::user();
+            
+            if (!$user) {
                 return response()->json([
                     'success' => false,
-                    'message' => 'Unknown user role'
-                ], 400);
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            // Get dashboard data based on user role using the main getDashboardData method
+            $dashboardData = $this->dashboardUsecase->getDashboardData($user->uuid);
+            
+            return response()->json($dashboardData);
+            
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve dashboard data: ' . $e->getMessage()
+            ], 500);
         }
     }
 
     /**
-     * Get admin dashboard specifically
-     */
-    public function adminDashboard(): JsonResponse
-    {
-        return $this->dashboardUsecase->getAdminDashboard();
-    }
-
-    /**
-     * Get owner dashboard specifically
-     */
-    public function ownerDashboard(): JsonResponse
-    {
-        return $this->dashboardUsecase->getOwnerDashboard();
-    }
-
-    /**
-     * Get employee dashboard specifically
-     */
-    public function employeeDashboard(): JsonResponse
-    {
-        return $this->dashboardUsecase->getEmployeeDashboard();
-    }
-
-    /**
-     * Get expenditures for approval
+     * Get expenditures for approval (admin/owner only)
      */
     public function getExpenditures(Request $request): JsonResponse
     {
-        $filters = $request->only(['status', 'start_date', 'end_date', 'per_page']);
-        return $this->dashboardUsecase->getExpenditures($filters);
+        try {
+            $filters = $request->only(['status', 'start_date', 'end_date', 'per_page']);
+            $result = $this->dashboardUsecase->getExpenditures($filters);
+            
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to retrieve expenditures: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
-     * Approve or reject expenditure
+     * Approve or reject expenditure (admin/owner only)
      */
     public function approveExpenditure(Request $request, string $uuid): JsonResponse
     {
-        $request->validate([
-            'action' => 'required|in:approve,reject',
-            'notes' => 'nullable|string'
-        ]);
+        try {
+            $request->validate([
+                'action' => 'required|in:approve,reject',
+                'notes' => 'nullable|string'
+            ]);
 
-        return $this->dashboardUsecase->approveExpenditure($uuid, $request->all());
+            $user = Auth::user();
+            
+            if (!$user) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'User not authenticated'
+                ], 401);
+            }
+
+            $result = $this->dashboardUsecase->approveExpenditure($uuid, $user->uuid);
+            
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to process expenditure: ' . $e->getMessage()
+            ], 500);
+        }
     }
 
     /**
-     * Generate reports
+     * Generate reports (admin/owner only)
      */
     public function generateReports(Request $request): JsonResponse
     {
-        $params = $request->only(['period']);
-        return $this->dashboardUsecase->generateReports($params);
+        try {
+            $params = $request->only(['period']);
+            $result = $this->dashboardUsecase->generateReports($params);
+            
+            return response()->json($result);
+        } catch (\Exception $e) {
+            return response()->json([
+                'success' => false,
+                'message' => 'Failed to generate reports: ' . $e->getMessage()
+            ], 500);
+        }
     }
 }
