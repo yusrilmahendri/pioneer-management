@@ -22,10 +22,11 @@ class Product extends Model
     protected $keyType = 'int';
 
     protected $fillable = [
-        'product',          // column name in database
-        'description',      // column name in database  
-        'price',
+        'name_product',
+        'description',
+        'price_product',
         'stock',
+        'uuid',
         'id_business',
         'id_product_category',
         'id_product_status',

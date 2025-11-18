@@ -13,8 +13,8 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('product_category', function (Blueprint $table) {
-            $table->bigInteger('id')->primary();
-            $table->string('product_category');
+            $table->bigIncrements('id');
+            $table->string('name_category_product');
             $table->timestamp('created_at')->nullable()->default(DB::raw('CURRENT_TIMESTAMP'));
             $table->string('created_by')->nullable();
             $table->timestamp('updated_at')->nullable()->default(DB::raw('NULL ON UPDATE CURRENT_TIMESTAMP'));

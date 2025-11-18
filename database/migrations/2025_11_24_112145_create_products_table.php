@@ -13,10 +13,11 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('product', function (Blueprint $table) {
-            $table->bigInteger('id')->primary();
-            $table->string('product');
+            $table->bigIncrements('id');
+            $table->string('uuid')->unique();
+            $table->string('name_product');
             $table->text('description')->nullable();
-            $table->decimal('price', 10, 2);
+            $table->decimal('price_product', 10, 2);
             $table->integer('stock');
             $table->timestamp('created_at')->nullable()->default(DB::raw('CURRENT_TIMESTAMP'));
             $table->string('created_by')->nullable();
@@ -25,6 +26,11 @@ return new class extends Migration
             $table->unsignedBigInteger('id_business');
             $table->unsignedBigInteger('id_product_category');
             $table->unsignedBigInteger('id_product_status');
+            
+            // Add foreign key constraints
+            $table->foreign('id_business')->references('id')->on('business');
+            $table->foreign('id_product_category')->references('id')->on('product_category');
+            $table->foreign('id_product_status')->references('id')->on('product_status');
         });
     }
 

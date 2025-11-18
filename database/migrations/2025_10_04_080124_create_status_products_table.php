@@ -13,7 +13,7 @@ return new class extends Migration
     public function up(): void
     {
         Schema::create('product_status', function (Blueprint $table) {
-            $table->bigInteger('id')->primary();
+            $table->bigIncrements('id');
             $table->string('product_status');
             $table->timestamp('created_at')->nullable()->default(DB::raw('CURRENT_TIMESTAMP'));
             $table->string('created_by')->nullable();

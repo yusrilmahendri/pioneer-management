@@ -24,7 +24,7 @@ class ProductCategoryController extends Controller
             // Search functionality
             if ($request->filled('search')) {
                 $search = $request->input('search');
-                $query->where('product_category', 'like', '%' . $search . '%');
+                $query->where('name_category_product', 'like', '%' . $search . '%');
             }
 
             // Order by
@@ -51,7 +51,7 @@ class ProductCategoryController extends Controller
     {
         return $this->executeWithErrorHandling(function () use ($request) {
             $category = ProductCategory::create([
-                'product_category' => $request->product_category,
+                'name_category_product' => $request->name_category_product,
                 'created_by' => auth()->id(),
                 'updated_by' => auth()->id(),
             ]);
@@ -91,7 +91,7 @@ class ProductCategoryController extends Controller
             $category = ProductCategory::findOrFail($id);
             
             $category->update([
-                'product_category' => $request->product_category ?? $category->product_category,
+                'name_category_product' => $request->name_category_product ?? $category->name_category_product,
                 'updated_by' => auth()->id(),
             ]);
 
@@ -141,7 +141,7 @@ class ProductCategoryController extends Controller
                 ->map(function ($category) {
                     return [
                         'id' => $category->id,
-                        'name' => $category->product_category,
+                        'name' => $category->name_category_product,
                         'products_count' => $category->products_count
                     ];
                 });

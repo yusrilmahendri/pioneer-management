@@ -15,7 +15,7 @@ class ProductCategory extends Model
     public $incrementing = true;
 
     protected $fillable = [
-        'product_category',  // actual column name
+        'name_category_product',
         'created_by',
         'updated_by',
     ];

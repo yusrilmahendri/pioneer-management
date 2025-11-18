@@ -15,7 +15,7 @@ class BusinessCategory extends Model
     protected $table = 'business_category';
     
     protected $fillable = [
-        'business_category',  // actual column name
+        'name_category_business',
         'created_by',
         'updated_by',
     ];

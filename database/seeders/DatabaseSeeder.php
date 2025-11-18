@@ -11,11 +11,29 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // Seed the comprehensive data that matches our database schema
+        // Seed master data first (categories and statuses)
         $this->call([
-            ComprehensiveSeeder::class,
-            SuperAdminTableSeeder::class, // Add the super admin as separate seeder
-            CashierTableSeeder::class,    // Add the cashier as separate seeder
+            BusinessCategorySeeder::class,
+            BusinessStatusSeeder::class,
+            ProductCategorySeeder::class,
+            ProductStatusSeeder::class,
+        ]);
+
+        // Seed users
+        $this->call([
+            PioneerUsersSeeder::class,
+        ]);
+
+        // Seed business and products (depends on categories, statuses, and users)
+        $this->call([
+            PisantekBusinessSeeder::class,
+            PisantekProductSeeder::class,
+        ]);
+
+        // Keep existing seeders if still needed
+        $this->call([
+            SuperAdminTableSeeder::class,
+            CashierTableSeeder::class,
         ]);
     }
 }

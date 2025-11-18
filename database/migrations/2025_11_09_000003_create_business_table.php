@@ -14,19 +14,20 @@ return new class extends Migration
     {
         Schema::create('business', function (Blueprint $table) {
             $table->bigIncrements('id');
-            $table->string('business');
-            $table->date('start_date');
+            $table->string('name_business');
+            $table->date('start_date')->nullable();
             $table->timestamp('created_at')->nullable()->default(DB::raw('CURRENT_TIMESTAMP'));
             $table->string('created_by')->nullable();
             $table->timestamp('updated_at')->nullable()->default(DB::raw('NULL ON UPDATE CURRENT_TIMESTAMP'));
             $table->string('updated_by')->nullable();
             $table->unsignedBigInteger('id_business_status');
             $table->unsignedBigInteger('id_business_category');
-            $table->unsignedBigInteger('id_provinsi');
-            $table->unsignedBigInteger('id_kabupaten');
+            $table->unsignedBigInteger('id_provinsi')->nullable();
+            $table->unsignedBigInteger('id_kabupaten')->nullable();
 
-            $table->index(['id_business_category'], 'add_busines_category_busines_id_foreign');
-            $table->index(['id_business_status'], 'add_busines_status_busines_id_foreign');
+            // Add foreign key constraints
+            $table->foreign('id_business_category')->references('id')->on('business_category');
+            $table->foreign('id_business_status')->references('id')->on('business_status');
         });
     }
 

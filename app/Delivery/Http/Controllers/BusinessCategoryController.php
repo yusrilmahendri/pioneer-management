@@ -24,7 +24,7 @@ class BusinessCategoryController extends Controller
             // Search functionality
             if ($request->filled('search')) {
                 $search = $request->input('search');
-                $query->where('business_category', 'like', '%' . $search . '%');
+                $query->where('name_category_business', 'like', '%' . $search . '%');
             }
 
             // Order by
@@ -51,7 +51,7 @@ class BusinessCategoryController extends Controller
     {
         return $this->executeWithErrorHandling(function () use ($request) {
             $category = BusinessCategory::create([
-                'business_category' => $request->business_category,
+                'name_category_business' => $request->name_category_business,
                 'created_by' => auth()->id(),
                 'updated_by' => auth()->id(),
             ]);
@@ -91,7 +91,7 @@ class BusinessCategoryController extends Controller
             $category = BusinessCategory::findOrFail($id);
             
             $category->update([
-                'business_category' => $request->business_category ?? $category->business_category,
+                'name_category_business' => $request->name_category_business ?? $category->name_category_business,
                 'updated_by' => auth()->id(),
             ]);
 
@@ -141,7 +141,7 @@ class BusinessCategoryController extends Controller
                 ->map(function ($category) {
                     return [
                         'id' => $category->id,
-                        'name' => $category->business_category,
+                        'name' => $category->name_category_business,
                         'businesses_count' => $category->businesses_count
                     ];
                 });
