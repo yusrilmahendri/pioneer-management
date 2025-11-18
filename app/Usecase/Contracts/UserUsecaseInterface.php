@@ -32,6 +32,16 @@ interface UserUsecaseInterface
     public function getUsersByRole(string $role): array;
 
     /**
+     * Get users by owner (for owner role - users in owner's businesses)
+     */
+    public function getUsersByOwner(string $ownerUuid, array $params = [], ?int $perPage = null): array;
+
+    /**
+     * Get users by supervisor (for supervisor role - users in same businesses)
+     */
+    public function getUsersBySupervisor(string $supervisorUuid, array $params = [], ?int $perPage = null): array;
+
+    /**
      * Create new user with validation and business logic
      */
     public function createUser(array $payload): array;

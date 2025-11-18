@@ -3,6 +3,7 @@
 namespace App\Delivery\Http\Controllers;
 
 use App\Http\Controllers\Controller;
+use App\Traits\ApiResponseHandler;
 use App\Usecase\Contracts\UserUsecaseInterface;
 use App\Delivery\Http\Requests\CreateUserRequest;
 use App\Delivery\Http\Requests\LoginRequest;
@@ -11,32 +12,72 @@ use App\Delivery\Http\Requests\ResetPasswordRequest;
 use App\Delivery\Http\Requests\CreateOwnerRequest;
 use App\Delivery\Http\Requests\CreateEmployeeRequest;
 use App\Delivery\Http\Requests\RegisterRequest;
+use App\Http\Requests\User\StoreUserRequest;
+use App\Http\Requests\User\UpdateUserRequest;
 use Illuminate\Http\Request;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Support\Facades\Auth;
 
 class UserController extends Controller
 {
+    use ApiResponseHandler;
+    
     protected $userUsecase;
 
     public function __construct(UserUsecaseInterface $userUsecase)
     {
         $this->userUsecase = $userUsecase;
+        $this->middleware('auth:sanctum')->except(['login', 'register']);
     }
 
     /**
-     * Get all users with optional filters
+     * Get users based on role - Single route for user management
+     * Admin: can see all users
+     * Owner: can see users in their businesses only
      */
     public function index(Request $request): JsonResponse
     {
         try {
+            $user = Auth::user();
             $params = $this->buildQueryParams($request);
             
-            if ($request->has('paginate') && $request->paginate === 'true') {
-                $perPage = $request->get('per_page', 15);
-                $result = $this->userUsecase->getPaginatedUsers($params, (int)$perPage);
-            } else {
-                $result = $this->userUsecase->getAllUsers($params);
+            // Role-based access control
+            switch ($user->account_role) {
+                case 'admin':
+                    // Admin can see all users
+                    if ($request->has('paginate') && $request->paginate === 'true') {
+                        $perPage = $request->get('per_page', 15);
+                        $result = $this->userUsecase->getPaginatedUsers($params, (int)$perPage);
+                    } else {
+                        $result = $this->userUsecase->getAllUsers($params);
+                    }
+                    break;
+                    
+                case 'owner':
+                    // Owner can see users in their businesses only
+                    if ($request->has('paginate') && $request->paginate === 'true') {
+                        $perPage = $request->get('per_page', 15);
+                        $result = $this->userUsecase->getUsersByOwner($user->uuid, $params, (int)$perPage);
+                    } else {
+                        $result = $this->userUsecase->getUsersByOwner($user->uuid, $params);
+                    }
+                    break;
+                    
+                case 'supervisor':
+                    // Supervisor can see users in same businesses (like owner but without business creation rights)
+                    if ($request->has('paginate') && $request->paginate === 'true') {
+                        $perPage = $request->get('per_page', 15);
+                        $result = $this->userUsecase->getUsersBySupervisor($user->uuid, $params, (int)$perPage);
+                    } else {
+                        $result = $this->userUsecase->getUsersBySupervisor($user->uuid, $params);
+                    }
+                    break;
+                    
+                default:
+                    return response()->json([
+                        'status' => 'error',
+                        'message' => 'Insufficient permissions'
+                    ], 403);
             }
 
             return response()->json($result);
@@ -74,41 +115,28 @@ class UserController extends Controller
     /**
      * Create new user
      */
-    public function store(CreateUserRequest $request): JsonResponse
+    public function store(StoreUserRequest $request): JsonResponse
     {
-        try {
+        return $this->executeWithErrorHandling(function () use ($request) {
             $result = $this->userUsecase->createUser($request->validated());
 
-            return response()->json($result, 201);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'An error occurred while creating user',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+            // Set success status code to 201 for created resource
+            if ($result['status'] === 'success') {
+                $result['code'] = 201;
+            }
+            
+            return $result;
+        });
     }
 
     /**
      * Update user
      */
-    public function update(Request $request, string $uuid): JsonResponse
+    public function update(UpdateUserRequest $request, string $uuid): JsonResponse
     {
-        try {
-            $result = $this->userUsecase->updateUser($uuid, $request->all());
-            
-            if ($result['status'] === 'error') {
-                return response()->json($result, 404);
-            }
-
-            return response()->json($result);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'An error occurred while updating user',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return $this->executeWithErrorHandling(function () use ($request, $uuid) {
+            return $this->userUsecase->updateUser($uuid, $request->validated());
+        });
     }
 
     /**
@@ -138,21 +166,9 @@ class UserController extends Controller
      */
     public function login(LoginRequest $request): JsonResponse
     {
-        try {
-            $result = $this->userUsecase->loginUser($request->validated());
-            
-            if ($result['status'] === 'error') {
-                return response()->json($result, 401);
-            }
-
-            return response()->json($result);
-        } catch (\Exception $e) {
-            return response()->json([
-                'status' => 'error',
-                'message' => 'An error occurred during login',
-                'error' => $e->getMessage()
-            ], 500);
-        }
+        return $this->executeWithErrorHandling(function () use ($request) {
+            return $this->userUsecase->loginUser($request->validated());
+        });
     }
 
     /**

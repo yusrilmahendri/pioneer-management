@@ -16,13 +16,14 @@ class Expenditure extends Model
 
     protected $fillable = [
         'uuid',
-        'user_id',
+        'id_business',
+        'id_user',
         'category',
         'description',
         'amount',
         'receipt_image',
         'status',
-        'approved_by',
+        'id_user_approved',
         'approved_at',
         'notes',
     ];
@@ -46,7 +47,15 @@ class Expenditure extends Model
      */
     public function user()
     {
-        return $this->belongsTo(User::class, 'user_id', 'uuid');
+        return $this->belongsTo(User::class, 'id_user', 'id');
+    }
+
+    /**
+     * Get the business this expenditure belongs to
+     */
+    public function business()
+    {
+        return $this->belongsTo(Business::class, 'id_business', 'id');
     }
 
     /**
@@ -54,7 +63,7 @@ class Expenditure extends Model
      */
     public function approver()
     {
-        return $this->belongsTo(User::class, 'approved_by', 'uuid');
+        return $this->belongsTo(User::class, 'id_user_approved', 'id');
     }
 
     /**

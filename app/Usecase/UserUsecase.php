@@ -107,6 +107,159 @@ class UserUsecase implements UserUsecaseInterface
         ];
     }
 
+    public function getUsersByOwner(string $ownerUuid, array $params = [], ?int $perPage = null): array
+    {
+        // Get owner
+        $owner = $this->userRepository->getByUuid($ownerUuid);
+        
+        if (!$owner) {
+            return [
+                'status' => 'error',
+                'message' => 'Owner not found'
+            ];
+        }
+
+        // Get owner's businesses from business_account pivot where owner is the business creator
+        $ownerBusinessIds = \DB::table('business_account')
+            ->where('id_user', $owner->id)
+            ->pluck('id_business')
+            ->toArray();
+
+        if (empty($ownerBusinessIds)) {
+            return [
+                'status' => 'success',
+                'message' => 'No users found (Owner has no businesses)',
+                'data' => []
+            ];
+        }
+
+        // Get all users from owner's businesses (employees + other owners if any)
+        $userIds = \DB::table('business_account')
+            ->whereIn('id_business', $ownerBusinessIds)
+            ->where('id_user', '!=', $owner->id) // Exclude the owner themselves
+            ->pluck('id_user')
+            ->toArray();
+
+        if (empty($userIds)) {
+            return [
+                'status' => 'success',
+                'message' => 'No users found in owner\'s businesses',
+                'data' => []
+            ];
+        }
+
+        // Build query parameters to filter by user IDs
+        $params['where']['id'] = $userIds;
+
+        if ($perPage) {
+            $params['with'] = ['businesses.businessCategory', 'businesses.businessStatus'];
+            $paginatedUsers = $this->userRepository->getPaginated($params, $perPage);
+
+            return [
+                'status' => 'success',
+                'message' => 'Business users retrieved successfully',
+                'data' => collect($paginatedUsers->items())->map(function ($user) {
+                    return $this->formatUserData($user);
+                })->toArray(),
+                'pagination' => [
+                    'current_page' => $paginatedUsers->currentPage(),
+                    'total_pages' => $paginatedUsers->lastPage(),
+                    'per_page' => $paginatedUsers->perPage(),
+                    'total_items' => $paginatedUsers->total(),
+                    'from' => $paginatedUsers->firstItem(),
+                    'to' => $paginatedUsers->lastItem()
+                ]
+            ];
+        } else {
+            $users = $this->userRepository->getWithRelations(['businesses.businessCategory', 'businesses.businessStatus'], $params);
+
+            return [
+                'status' => 'success',
+                'message' => 'Business users retrieved successfully',
+                'data' => $users->map(function ($user) {
+                    return $this->formatUserData($user);
+                })->toArray()
+            ];
+        }
+    }
+
+    public function getUsersBySupervisor(string $supervisorUuid, array $params = [], ?int $perPage = null): array
+    {
+        // Supervisor has same business access as employee but can manage users
+        // Get supervisor
+        $supervisor = $this->userRepository->getByUuid($supervisorUuid);
+        
+        if (!$supervisor) {
+            return [
+                'status' => 'error',
+                'message' => 'Supervisor not found'
+            ];
+        }
+
+        // Get supervisor's businesses from business_account pivot
+        $supervisorBusinessIds = \DB::table('business_account')
+            ->where('id_user', $supervisor->id)
+            ->pluck('id_business')
+            ->toArray();
+
+        if (empty($supervisorBusinessIds)) {
+            return [
+                'status' => 'success',
+                'message' => 'No users found (Supervisor not assigned to any business)',
+                'data' => []
+            ];
+        }
+
+        // Get all users from supervisor's businesses (excluding supervisor themselves)
+        $userIds = \DB::table('business_account')
+            ->whereIn('id_business', $supervisorBusinessIds)
+            ->where('id_user', '!=', $supervisor->id) // Exclude supervisor themselves
+            ->pluck('id_user')
+            ->toArray();
+
+        if (empty($userIds)) {
+            return [
+                'status' => 'success',
+                'message' => 'No users found in supervisor\'s businesses',
+                'data' => []
+            ];
+        }
+
+        // Build query parameters to filter by user IDs
+        $params['where']['id'] = $userIds;
+
+        if ($perPage) {
+            $params['with'] = ['businesses.businessCategory', 'businesses.businessStatus'];
+            $paginatedUsers = $this->userRepository->getPaginated($params, $perPage);
+
+            return [
+                'status' => 'success',
+                'message' => 'Business users retrieved successfully (Supervisor access)',
+                'data' => collect($paginatedUsers->items())->map(function ($user) {
+                    return $this->formatUserData($user);
+                })->toArray(),
+                'pagination' => [
+                    'current_page' => $paginatedUsers->currentPage(),
+                    'total_pages' => $paginatedUsers->lastPage(),
+                    'per_page' => $paginatedUsers->perPage(),
+                    'total_items' => $paginatedUsers->total(),
+                    'from' => $paginatedUsers->firstItem(),
+                    'to' => $paginatedUsers->lastItem()
+                ]
+            ];
+        } else {
+            $users = $this->userRepository->getWithRelations(['businesses.businessCategory', 'businesses.businessStatus'], $params);
+
+            return [
+                'status' => 'success',
+                'message' => 'Business users retrieved successfully (Supervisor access)',
+                'data' => $users->map(function ($user) {
+                    return $this->formatUserData($user);
+                })->toArray()
+            ];
+        }
+    }
+
     public function createUser(array $payload): array
     {
         // Validate input

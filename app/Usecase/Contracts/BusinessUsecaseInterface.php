@@ -78,4 +78,55 @@ interface BusinessUsecaseInterface
      * @return array
      */
     public function getUserBusinesses(int $userId): array;
+
+    /**
+     * Get businesses by owner UUID
+     *
+     * @param string $ownerUuid
+     * @param array $params
+     * @return array
+     */
+    public function getBusinessesByOwner(string $ownerUuid, array $params = []): array;
+
+    /**
+     * Get businesses by staff UUID (for supervisor/employee view)
+     *
+     * @param string $staffUuid
+     * @param array $params
+     * @return array
+     */
+    public function getBusinessesByStaff(string $staffUuid, array $params = []): array;
+
+    /**
+     * Validate if owner can access business
+     *
+     * @param string $businessId
+     * @param string $ownerUuid
+     * @return bool
+     */
+    public function validateOwnerBusinessAccess(string $businessId, string $ownerUuid): bool;
+
+    /**
+     * Disable business
+     *
+     * @param string $businessId
+     * @return array
+     */
+    public function disableBusiness(string $businessId): array;
+
+    /**
+     * Enable business
+     *
+     * @param string $businessId
+     * @return array
+     */
+    public function enableBusiness(string $businessId): array;
+
+    /**
+     * Assign staff to business
+     *
+     * @param array $data
+     * @return array
+     */
+    public function assignStaffToBusiness(array $data): array;
 }

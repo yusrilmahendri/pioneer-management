@@ -214,28 +214,296 @@ class ProductUsecase implements ProductUsecaseInterface
         return $product && $product->user_id === $userUuid;
     }
 
+    /**
+     * Validate if owner can access this product (product from their businesses)
+     */
+    public function validateOwnerProductAccess(string $productUuid, string $ownerUuid): bool
+    {
+        $product = $this->productRepository->getByUuid($productUuid);
+        
+        if (!$product) {
+            return false;
+        }
+
+        // Get owner's business IDs
+        $owner = $this->userRepository->getByUuid($ownerUuid);
+        if (!$owner) {
+            return false;
+        }
+
+        $businessIds = \App\Models\Business::where('user_id', $owner->id)->pluck('id')->toArray();
+        
+        if (empty($businessIds)) {
+            return false;
+        }
+
+        // Check if product creator belongs to owner's businesses
+        $productCreator = $this->userRepository->getByUuid($product->user_id);
+        
+        return $productCreator && in_array($productCreator->business_id, $businessIds);
+    }
+
+    /**
+     * Validate if employee can access this product (product from their assigned business)
+     */
+    public function validateEmployeeProductAccess(string $productId, string $employeeUuid): bool
+    {
+        // Find product by ID (not UUID since products use integer ID)
+        $product = \App\Models\Product::find($productId);
+        
+        if (!$product) {
+            return false;
+        }
+
+        // Get employee's assigned businesses from business_account pivot
+        $employee = $this->userRepository->getByUuid($employeeUuid);
+        if (!$employee) {
+            return false;
+        }
+
+        $employeeBusinessIds = \DB::table('business_account')
+            ->where('id_user', $employee->id)
+            ->pluck('id_business')
+            ->toArray();
+
+        if (empty($employeeBusinessIds)) {
+            return false;
+        }
+
+        // Check if product belongs to any of employee's businesses
+        return in_array($product->id_business, $employeeBusinessIds);
+    }
+
+    /**
+     * Get products for employee (from their assigned business)
+     */
+    public function getProductsByEmployee(string $employeeUuid, array $params = []): array
+    {
+        // Get employee's assigned businesses
+        $employee = $this->userRepository->getByUuid($employeeUuid);
+        
+        if (!$employee) {
+            return [
+                'status' => 'error',
+                'message' => 'Employee not found'
+            ];
+        }
+
+        // Get employee's assigned businesses from business_account pivot
+        $employeeBusinessIds = \DB::table('business_account')
+            ->where('id_user', $employee->id)
+            ->pluck('id_business')
+            ->toArray();
+
+        if (empty($employeeBusinessIds)) {
+            return [
+                'status' => 'success',
+                'message' => 'No products found (Employee not assigned to any business)',
+                'data' => []
+            ];
+        }
+
+        // Filter products by business IDs directly (since products have id_business column)
+        $params['where']['id_business'] = $employeeBusinessIds;
+
+        $products = $this->productRepository->getWithRelations(['business', 'productCategory', 'productStatus'], $params);
+
+        return [
+            'status' => 'success',
+            'message' => 'Business products retrieved successfully',
+            'data' => $products->map(function ($product) {
+                return $this->formatProductData($product);
+            })->toArray()
+        ];
+    }
+
+    /**
+     * Get products for owner (from their businesses only)
+     */
+    public function getProductsByOwner(string $ownerUuid, array $params = []): array
+    {
+        // Get owner's business IDs
+        $user = $this->userRepository->getByUuid($ownerUuid);
+        
+        if (!$user) {
+            return [
+                'status' => 'error',
+                'message' => 'Owner not found'
+            ];
+        }
+
+        // Get businesses owned by this user
+        $businessIds = \App\Models\Business::where('user_id', $user->id)->pluck('id')->toArray();
+        
+        if (empty($businessIds)) {
+            return [
+                'status' => 'success',
+                'message' => 'No products found (Owner has no businesses)',
+                'data' => []
+            ];
+        }
+
+        // Filter products by users who belong to owner's businesses
+        $userIdsInBusinesses = \App\Models\User::whereIn('business_id', $businessIds)->pluck('uuid')->toArray();
+        
+        if (!empty($userIdsInBusinesses)) {
+            $params['where']['user_id'] = $userIdsInBusinesses;
+        } else {
+            return [
+                'status' => 'success',
+                'message' => 'No products found (No employees in businesses)',
+                'data' => []
+            ];
+        }
+
+        $products = $this->productRepository->getWithRelations(['categoryProduct', 'statusProduct', 'user'], $params);
+
+        return [
+            'status' => 'success',
+            'message' => 'Owner products retrieved successfully',
+            'data' => $products->map(function ($product) {
+                return $this->formatProductData($product);
+            })->toArray()
+        ];
+    }
+
+    /**
+     * Get product statistics for admin (all products)
+     */
+    public function getAdminProductStatistics(): array
+    {
+        $totalProducts = $this->productRepository->count();
+        $activeProducts = $this->productRepository->count([
+            'where' => ['status_id' => 1] // Assuming 1 is active status
+        ]);
+
+        return [
+            'status' => 'success',
+            'message' => 'Admin product statistics retrieved successfully',
+            'data' => [
+                'total_products' => $totalProducts,
+                'active_products' => $activeProducts,
+                'inactive_products' => $totalProducts - $activeProducts,
+                'view_type' => 'admin'
+            ]
+        ];
+    }
+
+    /**
+     * Get product statistics for owner (from their businesses)
+     */
+    public function getOwnerProductStatistics(string $ownerUuid): array
+    {
+        $user = $this->userRepository->getByUuid($ownerUuid);
+        
+        if (!$user) {
+            return [
+                'status' => 'error',
+                'message' => 'Owner not found'
+            ];
+        }
+
+        // Get businesses owned by this user
+        $businessIds = \App\Models\Business::where('user_id', $user->id)->pluck('id')->toArray();
+        
+        if (empty($businessIds)) {
+            return [
+                'status' => 'success',
+                'message' => 'Owner product statistics (no businesses)',
+                'data' => [
+                    'total_products' => 0,
+                    'active_products' => 0,
+                    'inactive_products' => 0,
+                    'view_type' => 'owner'
+                ]
+            ];
+        }
+
+        // Get products from employees in owner's businesses
+        $userIdsInBusinesses = \App\Models\User::whereIn('business_id', $businessIds)->pluck('uuid')->toArray();
+        
+        if (empty($userIdsInBusinesses)) {
+            return [
+                'status' => 'success',
+                'message' => 'Owner product statistics (no employees)',
+                'data' => [
+                    'total_products' => 0,
+                    'active_products' => 0,
+                    'inactive_products' => 0,
+                    'view_type' => 'owner'
+                ]
+            ];
+        }
+
+        $totalProducts = $this->productRepository->count(['where' => [['user_id', 'IN', $userIdsInBusinesses]]]);
+        $activeProducts = $this->productRepository->count([
+            'where' => [
+                ['user_id', 'IN', $userIdsInBusinesses],
+                ['status_id', '=', 1]
+            ]
+        ]);
+
+        return [
+            'status' => 'success',
+            'message' => 'Owner product statistics retrieved successfully',
+            'data' => [
+                'total_products' => $totalProducts,
+                'active_products' => $activeProducts,
+                'inactive_products' => $totalProducts - $activeProducts,
+                'businesses_count' => count($businessIds),
+                'view_type' => 'owner'
+            ]
+        ];
+    }
+
     protected function formatProductData($product): array
     {
+        // Get business information directly from product
+        $business = null;
+
+        if ($product->business) {
+            $business = [
+                'id' => $product->business->id,
+                'name' => $product->business->business ?? 'Unknown Business'
+            ];
+        }
+
         return [
-            'uuid' => $product->uuid,
-            'name' => $product->name_product,
-            'description' => $product->deskripsi,
+            'id' => $product->id,
+            'name' => $product->product ?? 'Unknown Product', // product column name in DB
+            'description' => $product->description,
             'price' => $product->price,
             'stock' => $product->stock,
-            'category' => $product->categoryProduct ? [
-                'uuid' => $product->categoryProduct->uuid,
-                'name' => $product->categoryProduct->name_category_product ?? 'Unknown'
+            'category' => $product->productCategory ? [
+                'id' => $product->productCategory->id,
+                'name' => $product->productCategory->product_category ?? 'Unknown'
             ] : null,
-            'status' => $product->statusProduct ? [
-                'uuid' => $product->statusProduct->uuid,
-                'name' => $product->statusProduct->name_status_product ?? 'Unknown'
+            'status' => $product->productStatus ? [
+                'id' => $product->productStatus->id,
+                'name' => $product->productStatus->product_status ?? 'Unknown'
             ] : null,
-            'user' => $product->user ? [
-                'uuid' => $product->user->uuid,
-                'name' => $product->user->name
-            ] : null,
+            'business' => $business,
+            'created_by' => $product->created_by,
             'created_at' => $product->created_at,
             'updated_at' => $product->updated_at
         ];
+    }
+
+    /**
+     * Get products for supervisor (from their assigned businesses with management rights)
+     */
+    public function getProductsBySupervisor(string $supervisorUuid, array $params = []): array
+    {
+        // Supervisor has same product access as employee but with management capabilities
+        return $this->getProductsByEmployee($supervisorUuid, $params);
+    }
+
+    /**
+     * Validate if supervisor can access this product (same logic as employee but with management rights)
+     */
+    public function validateSupervisorProductAccess(string $productId, string $supervisorUuid): bool
+    {
+        // Supervisor has same validation as employee
+        return $this->validateEmployeeProductAccess($productId, $supervisorUuid);
     }
 }

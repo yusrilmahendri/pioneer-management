@@ -14,4 +14,12 @@ interface ProductUsecaseInterface
     public function deleteProduct(string $uuid): array;
     public function getProductStatistics(string $userUuid): array;
     public function validateProductOwnership(string $productUuid, string $userUuid): bool;
+    public function validateOwnerProductAccess(string $productUuid, string $ownerUuid): bool;
+    public function getProductsByOwner(string $ownerUuid, array $params = []): array;
+    public function getProductsByEmployee(string $employeeUuid, array $params = []): array;
+    public function validateEmployeeProductAccess(string $productUuid, string $employeeUuid): bool;
+    public function getProductsBySupervisor(string $supervisorUuid, array $params = []): array;
+    public function validateSupervisorProductAccess(string $productUuid, string $supervisorUuid): bool;
+    public function getAdminProductStatistics(): array;
+    public function getOwnerProductStatistics(string $ownerUuid): array;
 }
