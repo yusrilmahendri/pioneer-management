@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BusinessStatus;
 use App\Http\Requests\StoreBusinessStatusRequest;
 use App\Http\Requests\UpdateBusinessStatusRequest;
-use App\Delivery\Http\Traits\ApiResponseHandler;
+use App\Traits\ApiResponseHandler;
 use Illuminate\Http\Request;
 
 class BusinessStatusController extends Controller

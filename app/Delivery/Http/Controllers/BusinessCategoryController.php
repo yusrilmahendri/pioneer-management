@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\BusinessCategory;
 use App\Http\Requests\StoreBusinessCategoryRequest;
 use App\Http\Requests\UpdateBusinessCategoryRequest;
-use App\Delivery\Http\Traits\ApiResponseHandler;
+use App\Traits\ApiResponseHandler;
 use Illuminate\Http\Request;
 
 class BusinessCategoryController extends Controller

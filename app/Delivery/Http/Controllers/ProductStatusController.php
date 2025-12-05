@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ProductStatus;
 use App\Http\Requests\StoreProductStatusRequest;
 use App\Http\Requests\UpdateProductStatusRequest;
-use App\Delivery\Http\Traits\ApiResponseHandler;
+use App\Traits\ApiResponseHandler;
 use Illuminate\Http\Request;
 
 class ProductStatusController extends Controller

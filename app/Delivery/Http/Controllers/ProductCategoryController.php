@@ -6,7 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Models\ProductCategory;
 use App\Http\Requests\StoreProductCategoryRequest;
 use App\Http\Requests\UpdateProductCategoryRequest;
-use App\Delivery\Http\Traits\ApiResponseHandler;
+use App\Traits\ApiResponseHandler;
 use Illuminate\Http\Request;
 
 class ProductCategoryController extends Controller
